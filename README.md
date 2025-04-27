@@ -11,8 +11,8 @@
   <a href="https://www.npmjs.com/package/sentient-agent-framework">
     <img src="https://img.shields.io/npm/dm/sentient-agent-framework" alt="npm downloads">
   </a>
-  <a href="https://github.com/sentient-agi/sentient-agent-framework/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/sentient-agi/sentient-agent-framework" alt="license">
+  <a href="https://github.com/alanchelmickjr/sentient-node-sdk/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/alanchelmickjr/sentient-node-sdk" alt="license">
   </a>
 </p>
 

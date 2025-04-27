@@ -1,6 +1,6 @@
 {
   "name": "sentient-agent-framework",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "TypeScript/Node.js implementation of the Sentient Agent Framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
