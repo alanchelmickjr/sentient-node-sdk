@@ -225,7 +225,8 @@ pnpm run example-server
 pnpm run cli
 ```
 
-3. Enter the URL of the server (e.g., `http://localhost:3000/assist`) and start chatting with the agent.
+3. Enter the URL of the server (e.g., `http://localhost:3000`) and start chatting with the agent.
+   - The CLI will automatically append "/assist" to the URL if it's not already included
 
 The CLI client will display the events received from the agent, including:
 - Text blocks

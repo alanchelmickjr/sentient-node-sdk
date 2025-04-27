@@ -121,7 +121,11 @@ class SentientAgentClientCLI {
       let streamId: string | null = null;
 
       try {
-        for await (const event of this.client.queryAgent(prompt, url)) {
+        // Ensure URL ends with /assist
+        const assistUrl = url.endsWith('/assist') ? url : `${url}/assist`;
+        console.log(`Connecting to: ${assistUrl}`);
+        
+        for await (const event of this.client.queryAgent(prompt, assistUrl)) {
           // Handle different event types
           switch (event.content_type) {
             case EventContentType.DONE:
