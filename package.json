@@ -1,6 +1,6 @@
 {
   "name": "sentient-agent-framework",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "TypeScript/Node.js implementation of the Sentient Agent Framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,6 +10,15 @@
   "files": [
     "dist/**/*"
   ],
+  "author": "Alan Helmick <alan@talkverse.ai>",
+  "homepage": "https://github.com/alanchelmickjr/sentient-node-sdk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alanchelmickjr/sentient-node-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alanchelmickjr/sentient-node-sdk/issues"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

@@ -1,5 +1,27 @@
 /**
  * SentientAgentClient: Client for interacting with Sentient Agent Framework.
+ *
+ * This client provides methods for querying agents built with the Sentient Agent Framework
+ * and processing the events they emit. It handles Server-Sent Events (SSE) and converts
+ * them to strongly-typed response events.
+ *
+ * @example
+ * ```typescript
+ * const client = new SentientAgentClient();
+ * for await (const event of client.queryAgent('What is the weather?', 'http://localhost:3000/assist')) {
+ *   // Process events based on their type
+ *   switch (event.content_type) {
+ *     case EventContentType.TEXTBLOCK:
+ *       console.log(`${event.event_name}: ${event.content}`);
+ *       break;
+ *     // Handle other event types...
+ *   }
+ * }
+ * ```
+ *
+ * @module sentient-agent-framework/client
+ * @author Alan 56.7 & Claude 3.7 the Magnificent via Roo on SPARC with Love for Sentient AI Berkeley Hackathon
+ * @version 0.1.0
  */
 import { ResponseEvent } from '../interface/events';
 /**

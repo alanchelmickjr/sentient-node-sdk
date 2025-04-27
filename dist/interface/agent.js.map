@@ -1,1 +1,1 @@
-{"version":3,"file":"agent.js","sourceRoot":"","sources":["../../src/interface/agent.ts"],"names":[],"mappings":";;;AAIA;;GAEG;AACH,MAAsB,aAAa;IACjC,IAAI,CAAS;IAEb,YAAY,IAAY;QACtB,IAAI,CAAC,IAAI,GAAG,IAAI,CAAC;IACnB,CAAC;CAUF;AAfD,sCAeC"}
+{"version":3,"file":"agent.js","sourceRoot":"","sources":["../../src/interface/agent.ts"],"names":[],"mappings":";AAAA;;;;;;;;;;;;;;;;;;;;;;;GAuBG;;;AAMH;;GAEG;AACH,MAAsB,aAAa;IACjC,IAAI,CAAS;IAEb,YAAY,IAAY;QACtB,IAAI,CAAC,IAAI,GAAG,IAAI,CAAC;IACnB,CAAC;CAUF;AAfD,sCAeC"}

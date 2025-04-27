@@ -1,5 +1,37 @@
 /**
- * DefaultResponseHandler: Default implementation of the ResponseHandler interface.
+ * Default Response Handler Implementation
+ *
+ * This module provides the DefaultResponseHandler class, which implements the
+ * ResponseHandler interface. It is responsible for emitting events to clients,
+ * including text blocks, JSON objects, streaming text, and error messages.
+ *
+ * The DefaultResponseHandler uses a Hook to emit events to clients, and provides
+ * methods for creating text streams, emitting JSON objects, and handling errors.
+ *
+ * @example
+ * ```typescript
+ * // Create a response handler
+ * const responseHandler = new DefaultResponseHandler(source, hook);
+ *
+ * // Emit a text block
+ * await responseHandler.emitTextBlock('THINKING', 'Processing your query...');
+ *
+ * // Emit a JSON object
+ * await responseHandler.emitJson('RESULTS', { items: [1, 2, 3] });
+ *
+ * // Stream text
+ * const stream = responseHandler.createTextStream('RESPONSE');
+ * await stream.emitChunk('Hello, ');
+ * await stream.emitChunk('world!');
+ * await stream.complete();
+ *
+ * // Complete the response
+ * await responseHandler.complete();
+ * ```
+ *
+ * @module sentient-agent-framework/implementation/default-response-handler
+ * @author Alan 56.7 & Claude 3.7 the Magnificent via Roo on SPARC with Love for Sentient AI Berkeley Hackathon
+ * @version 0.1.0
  */
 import { Hook } from '../interface/hook';
 import { Identity } from '../interface/identity';
