@@ -3,15 +3,13 @@
 * Run: npm i --save-dev @types/node
 */
 import { AgentConfig } from './agent_config';
-import { Model } from './agent_tools/model/model';
 export declare class Agent {
     readonly config: AgentConfig;
-    model: Model;
     private tools;
     private isInitialized;
     constructor();
     /**
-     * Asynchronous initialization to load model and tools.
+     * Asynchronous initialization to load tools.
      * Must be called after constructor and before run().
      */
     init(): Promise<void>;
