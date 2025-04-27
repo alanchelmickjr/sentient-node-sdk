@@ -12,7 +12,8 @@
     "sourceMap": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM"],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
