@@ -1,33 +1,54 @@
 import express, { Request as ExpressRequest, Response as ExpressResponse } from 'express';
-// TODO: Import actual TS versions when available
 import { DefaultHook } from './default_hook';
 import { DefaultResponseHandler } from './default_response_handler';
 import { DefaultSession } from './default_session';
 import { AbstractAgent } from '../interface/agent';
-import { DoneEvent } from '../interface/events';
+import { EventContentType } from '../interface/events';
 import { Identity } from '../interface/identity';
 import { Request as AgentRequest } from '../interface/request';
 
+/**
+ * Default server implementation for Sentient Agent Framework.
+ * Provides an Express server that handles agent requests and streams responses.
+ */
 export class DefaultServer {
   private _agent: AbstractAgent;
   private _app: express.Express;
 
+  /**
+   * Create a new DefaultServer.
+   * @param agent The agent to serve.
+   */
   constructor(agent: AbstractAgent) {
     this._agent = agent;
     this._app = express();
 
+    // Configure middleware for parsing JSON requests
+    this._app.use(express.json());
+    
     // Bind endpoint
     this._app.post('/assist', this.assistEndpoint.bind(this));
+    
     // LOG: Construction
     console.info('[DefaultServer][LOG] Created DefaultServer and bound /assist endpoint.');
   }
 
+  /**
+   * Run the server on the specified host and port.
+   * @param host The host to listen on.
+   * @param port The port to listen on.
+   */
   run(host: string = '0.0.0.0', port: number = 8000) {
     this._app.listen(port, host, () => {
       console.info(`[DefaultServer][LOG] Server listening on http://${host}:${port}`);
     });
   }
 
+  /**
+   * Stream agent output to the client.
+   * @param agentReq The agent request.
+   * @param res The Express response.
+   */
   private async streamAgentOutput(agentReq: AgentRequest, res: ExpressResponse) {
     // Set up SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -38,8 +59,8 @@ export class DefaultServer {
     console.info('[DefaultServer][LOG] Starting streamAgentOutput');
 
     // Create session, identity, queue, hook, response handler
-    const session = new DefaultSession(agentReq.session);
-    const identity = new Identity(session.processorId, this._agent.name);
+    const session = new DefaultSession(agentReq.session || {});
+    const identity = new Identity(session.processor_id, this._agent.name);
     const responseQueue: Array<any> = []; // Replace with async queue if needed
     const hook = new DefaultHook({ queue: responseQueue });
     const responseHandler = new DefaultResponseHandler(identity, hook);
@@ -54,9 +75,9 @@ export class DefaultServer {
     while (!done) {
       if (responseQueue.length > 0) {
         const event = responseQueue.shift();
-        res.write(`event: ${event.eventName}\n`);
+        res.write(`event: ${event.event_name}\n`);
         res.write(`data: ${JSON.stringify(event)}\n\n`);
-        if (event instanceof DoneEvent) {
+        if (event.content_type === EventContentType.DONE) {
           done = true;
         }
       } else {
@@ -65,15 +86,23 @@ export class DefaultServer {
       }
     }
     res.end();
+    
     // LOG: Streaming end
     console.info('[DefaultServer][LOG] Finished streamAgentOutput');
   }
 
+  /**
+   * Handle requests to the /assist endpoint.
+   * @param req The Express request.
+   * @param res The Express response.
+   */
   private async assistEndpoint(req: ExpressRequest, res: ExpressResponse) {
     // LOG: /assist endpoint hit
     console.info('[DefaultServer][LOG] /assist endpoint received request');
-    // TODO: Parse AgentRequest from req.body
+    
+    // Parse AgentRequest from req.body
     const agentReq = req.body as AgentRequest;
+    
     await this.streamAgentOutput(agentReq, res);
   }
 }

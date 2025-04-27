@@ -26,7 +26,7 @@ classDiagram
         +createTextStream(eventName: string): StreamEventEmitter<string>
         +emitError(errorMessage: string, errorCode?: number, details?: any): Promise<void>
         +complete(): Promise<void>
-        +isComplete(): boolean
+        +isComplete: boolean
     }
 
     class StreamEventEmitter~T~ {
@@ -77,6 +77,10 @@ classDiagram
 - `Event`, `BaseEvent`, `AtomicEvent`, `StreamEvent`, `DocumentEvent`, `TextBlockEvent`, `TextChunkEvent`, `ErrorEvent`, `DoneEvent` (interfaces)
 - `ResponseEvent` (discriminated union type)
 
+### event_factories.ts
+
+- Factory functions for creating event objects: `createBaseEvent`, `createDocumentEvent`, `createTextBlockEvent`, `createTextChunkEvent`, `createErrorEvent`, `createDoneEvent`
+
 ### exceptions.ts
 
 - Custom error classes: `ProcessorError`, `AgentError`, `ResponseStreamClosedError`, `TextStreamClosedError` (all extending Error)
@@ -94,11 +98,27 @@ classDiagram
 - `Query` (interface): Query id and prompt.
 - `Request` (interface): Contains `query` and optional `session`.
 
+### response_handler.ts
+
+- `ResponseHandler` (interface): Protocol for handling agent responses.
+- `StreamEventEmitter<T>` (interface): Protocol for emitting chunks of data in a stream.
+
 ### session.ts
 
 - `SessionObject` (interface): Canonical session state.
 - `Session` (interface): Protocol for chat session.
 - `Interaction` (interface): Placeholder for interaction between user and agent.
+
+---
+
+## Client Interface
+
+The framework includes a client interface for interacting with agents:
+
+### SentientAgentClient
+
+- TypeScript client for querying agents and processing server-sent events.
+- Uses the ResponseEventAdapter to validate and convert JSON objects to response events.
 
 ---
 
@@ -110,11 +130,21 @@ classDiagram
 - Async methods use Promise and AsyncIterable.
 - All TypeScript files are in `src/interface/` for npm builds.
 - Legacy Python files remain in `interface/` for reference only.
+- Factory functions are used instead of class constructors for event creation.
+
+---
+
+## Completed Tasks
+
+- ✅ Ported all interfaces to TypeScript
+- ✅ Added event factory functions
+- ✅ Implemented ResponseHandler interface
+- ✅ Added client interface
 
 ---
 
 ## TODO
 
-- Port/disambiguate any remaining protocols (e.g., ResponseHandler).
 - Refine placeholder interfaces for full type safety.
 - Add JSDoc and TypeScript type guards as needed.
+- Add more comprehensive examples.

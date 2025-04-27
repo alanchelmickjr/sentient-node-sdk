@@ -15,7 +15,7 @@ This directory contains the concrete implementations for the Sentient Agent Fram
 - **TypeScript class** that wraps a SessionObject and provides accessors for processorId, activityId, requestId, and an async iterable of interactions.
 - Replaces Python attribute access with TypeScript getters.
 
-### DefaultHook (src/implementation/default_hook.tsx)
+### DefaultHook (src/implementation/default_hook.ts)
 - **TypeScript implementation** of an async event queue hook.
 - Collects events in an array (queue) and uses DefaultIdGenerator to ensure monotonic event IDs.
 
@@ -28,8 +28,13 @@ This directory contains the concrete implementations for the Sentient Agent Fram
 - Provides methods to emit chunks and mark the stream as complete.
 
 ### DefaultResponseHandler (src/implementation/default_response_handler.ts)
-- **Not yet ported.**
-- Will manage event emission, stream management, and response completion.
+- **TypeScript implementation** of the ResponseHandler interface.
+- Manages event emission, stream management, and response completion.
+- Uses event factory functions to create and emit events.
+
+### ResponseEventAdapter (src/implementation/response_event_adapter.ts)
+- **TypeScript implementation** for validating and converting JSON objects to response events.
+- Used by the client to process server-sent events.
 
 ---
 
@@ -42,6 +47,7 @@ This directory contains the concrete implementations for the Sentient Agent Fram
 - Queueing uses arrays (or custom async queues) instead of Python's asyncio.Queue.
 - All IDs are strings (ULIDs).
 - Python-specific features (Pydantic, Field, decorators) are replaced with TypeScript idioms.
+- Factory functions are used instead of class constructors for event creation.
 
 ---
 
@@ -51,11 +57,23 @@ This directory contains the concrete implementations for the Sentient Agent Fram
 |------------------------|-------------------------------------------|----------------|
 | DefaultServer          | src/implementation/default_server.ts       | ✅ Ported      |
 | DefaultSession         | src/implementation/default_session.ts      | ✅ Ported      |
-| DefaultHook            | src/implementation/default_hook.tsx        | ✅ Ported      |
+| DefaultHook            | src/implementation/default_hook.ts         | ✅ Ported      |
 | DefaultIdGenerator     | src/implementation/default_id_generator.ts | ✅ Ported      |
 | DefaultTextStream      | src/implementation/default_text_stream.ts  | ✅ Ported      |
-| DefaultResponseHandler | src/implementation/default_response_handler.ts | ⏳ Pending |
+| DefaultResponseHandler | src/implementation/default_response_handler.ts | ✅ Ported |
+| ResponseEventAdapter   | src/implementation/response_event_adapter.ts | ✅ Added    |
 | (Legacy Python)        | implementation/*.py                        | 🚧 Legacy      |
+
+---
+
+## Client Implementation
+
+A TypeScript client implementation has been added to facilitate interaction with agents built using this framework:
+
+### SentientAgentClient (src/client/sentient_agent_client.ts)
+- **TypeScript implementation** of a client for interacting with Sentient Agent Framework.
+- Provides methods for querying agents and processing server-sent events.
+- Uses the ResponseEventAdapter to validate and convert JSON objects to response events.
 
 ---
 
@@ -67,7 +85,7 @@ All implementations are now located under `src/implementation/` for npm/TypeScri
 
 ## TODO
 
-- Port DefaultResponseHandler to TypeScript.
 - Replace all legacy imports with canonical src/ imports in the codebase.
 - Complete interface/request.ts and interface/session.ts for full type safety.
-- Add tests for each implementation.
+- Add more comprehensive tests for each implementation.
+- Add examples for using the framework in different environments (Node.js, Next.js, etc.).

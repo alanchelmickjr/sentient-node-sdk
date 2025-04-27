@@ -1,40 +1,57 @@
-import { SessionObject } from '../interface/request'; // TODO: Ensure TS port exists
-import { Interaction } from '../interface/session'; // TODO: Ensure TS port exists
+import { Session, SessionObject, Interaction } from '../interface/session';
 
 /**
  * Default implementation of the Session interface.
- * Simply returns values from the session object.
+ * Adapts to stateless architecture by providing consistent access to session data.
  */
-export class DefaultSession {
+export class DefaultSession implements Session {
   private _sessionObject: SessionObject;
 
-  constructor(sessionObject: SessionObject) {
-    this._sessionObject = sessionObject;
+  constructor(sessionObject: Partial<SessionObject> = {}) {
+    // Ensure all required fields exist with defaults
+    this._sessionObject = {
+      processor_id: sessionObject.processor_id || 'default-processor',
+      activity_id: sessionObject.activity_id || 'default-activity',
+      request_id: sessionObject.request_id || 'default-request',
+      interactions: sessionObject.interactions || []
+    };
+    
     // LOG: Construction
-    console.info('[DefaultSession][LOG] Created with sessionObject:', sessionObject);
+    console.info('[DefaultSession][LOG] Created with sessionObject:', this._sessionObject);
   }
 
-  get processorId(): string {
-    // LOG: Access processorId
-    console.info('[DefaultSession][LOG] Accessing processorId');
-    return this._sessionObject.processorId;
+  /**
+   * Get processor ID
+   */
+  get processor_id(): string {
+    return this._sessionObject.processor_id;
   }
 
-  get activityId(): string {
-    // LOG: Access activityId
-    console.info('[DefaultSession][LOG] Accessing activityId');
-    return this._sessionObject.activityId;
+  /**
+   * Get activity ID
+   */
+  get activity_id(): string {
+    return this._sessionObject.activity_id;
   }
 
-  get requestId(): string {
-    // LOG: Access requestId
-    console.info('[DefaultSession][LOG] Accessing requestId');
-    return this._sessionObject.requestId;
+  /**
+   * Get request ID
+   */
+  get request_id(): string {
+    return this._sessionObject.request_id;
   }
 
-  getInteractions(): AsyncIterable<Interaction> {
-    // LOG: Access getInteractions
-    console.info('[DefaultSession][LOG] Accessing getInteractions');
-    return this._sessionObject.interactions;
+  /**
+   * Get interactions as AsyncIterable
+   * In a stateless environment, we convert the array to an AsyncIterable
+   */
+  async *get_interactions(): AsyncIterable<Interaction> {
+    // LOG: Access get_interactions
+    console.info('[DefaultSession][LOG] Accessing get_interactions');
+    
+    // Convert array to AsyncIterable
+    for (const interaction of this._sessionObject.interactions) {
+      yield interaction;
+    }
   }
 }
