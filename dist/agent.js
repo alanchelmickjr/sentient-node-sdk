@@ -39,8 +39,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Agent = void 0;
-const dotenv = __importStar(require("dotenv"));
-const fs = __importStar(require("fs/promises")); // Use promise-based fs module
+// Import only what's needed for the SDK
 const path = __importStar(require("path"));
 const agent_config_1 = require("./agent_config"); // Assuming this exists
 // Simple logger replacement (use Pino/Winston in production)
@@ -51,17 +50,15 @@ const logger = {
 };
 class Agent {
     config;
-    model; // Definite assignment assertion (!) - assigned in init()
     tools = {};
     isInitialized = false;
     constructor() {
         // Basic setup in constructor
         logger.info("[AGENT] Initializing agent...");
-        dotenv.config(); // Load .env file into process.env
         this.config = new agent_config_1.AgentConfig();
     }
     /**
-     * Asynchronous initialization to load model and tools.
+     * Asynchronous initialization to load tools.
      * Must be called after constructor and before run().
      */
     async init() {
@@ -70,22 +67,6 @@ class Agent {
             return;
         }
         logger.info("[AGENT] Performing async initialization...");
-        // Initialize model
-        try {
-            // LOG: Begin dynamic model import
-            logger.info("[AGENT][LOG] Importing model class from './agent_tools/model/model'...");
-            const { Model: ModelClass } = await import('./agent_tools/model/model.js');
-            logger.info("[AGENT][LOG] Model class imported, instantiating...");
-            this.model = new ModelClass({
-                apiKey: process.env.MODEL_API_KEY,
-            });
-            logger.info("[AGENT][LOG] Model instantiated.");
-            logger.info("[AGENT] Model initialized.");
-        }
-        catch (error) {
-            logger.error(`[AGENT] Failed to initialize Model. Error: ${error?.message || error}`);
-            throw new Error("Model initialization failed"); // Rethrow or handle appropriately
-        }
         // Load tools
         await this.loadTools();
         this.isInitialized = true;
@@ -96,59 +77,12 @@ class Agent {
         // Resolve path relative to the current file's directory
         const toolsDirPath = path.resolve(__dirname, 'agent_tools');
         try {
-            const entries = await fs.readdir(toolsDirPath, { withFileTypes: true });
-            for (const entry of entries) {
-                // Look for directories inside agent_tools, excluding 'model'
-                if (entry.isDirectory() && entry.name !== 'model') {
-                    const toolName = entry.name;
-                    const toolConfigKey = `${toolName.toUpperCase()}_ENABLED`;
-                    // Check if tool is enabled in agent config
-                    // Use type assertion or a safer check if necessary
-                    if (!this.config[toolConfigKey]) {
-                        logger.info(`[AGENT] Skipping ${toolName} tool (disabled in config).`);
-                        continue;
-                    }
-                    try {
-                        logger.info(`[AGENT] Loading ${toolName} tool...`);
-                        // LOG: Begin dynamic tool import
-                        logger.info(`[AGENT][LOG] Importing tool module at '${toolName}' from '${moduleRelativePath}'...`);
-                        const moduleRelativePath = `./agent_tools/${toolName}/${toolName}.js`;
-                        // Dynamically import the tool module
-                        const module = await import(moduleRelativePath);
-                        logger.info(`[AGENT][LOG] Tool module '${toolName}' imported, resolving class...`);
-                        // Get the main class (assumed to be capitalized version of the module name)
-                        const className = toolName.charAt(0).toUpperCase() + toolName.slice(1);
-                        const ToolClass = module[className]; // Type assertion
-                        if (!ToolClass || typeof ToolClass !== 'function') {
-                            logger.error(`[AGENT][LOG] Tool class '${className}' not found in module '${moduleRelativePath}'.`);
-                            throw new Error(`Class '${className}' not found or not a constructor in module '${moduleRelativePath}'.`);
-                        }
-                        // Gather required environment variables for the tool
-                        const envVarPrefix = `${toolName.toUpperCase()}_`;
-                        const toolEnvVars = {};
-                        for (const key in process.env) {
-                            if (key.startsWith(envVarPrefix)) {
-                                const cleanKey = key.replace(envVarPrefix, "").toLowerCase();
-                                toolEnvVars[cleanKey] = process.env[key];
-                            }
-                        }
-                        // LOG: Instantiating tool
-                        logger.info(`[AGENT][LOG] Instantiating tool '${className}' with env and model...`);
-                        // Initialize tool with environment variables and model
-                        this.tools[toolName] = new ToolClass({ ...toolEnvVars, model: this.model });
-                        logger.info(`[AGENT][LOG] Tool '${className}' instantiated.`);
-                        logger.info(`[AGENT] Loaded ${toolName} tool.`);
-                    }
-                    catch (e) {
-                        logger.error(`[AGENT] Failed to load ${toolName} tool. Error: ${e?.message || String(e)}.`);
-                        // Optional: decide if loading failure of one tool should stop the agent
-                    }
-                }
-            }
+            // In the SDK version, we don't need to dynamically load tools
+            // This is a placeholder for future tool loading logic
+            logger.info(`[AGENT] Tool loading is not implemented in the SDK version.`);
         }
         catch (error) {
-            logger.error(`[AGENT] Error reading tools directory '${toolsDirPath}'. Error: ${error?.message || String(error)}`);
-            // Optional: decide if failure to read directory should stop the agent
+            logger.error(`[AGENT] Error loading tools. Error: ${error?.message || String(error)}`);
         }
     }
     /**
