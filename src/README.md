@@ -230,6 +230,121 @@ At the end of the stream, `finalResponseStream.complete()` is called to signal t
 await finalResponseStream.complete();
 ```
 
+## Server Environments
+
+The framework is designed to be flexible and can be used in various server environments:
+
+### Express Server
+
+```typescript
+import express from 'express';
+import { AbstractAgent, DefaultServer } from 'sentient-agent-framework';
+
+// Create your agent
+class MyAgent extends AbstractAgent {
+  // Implement assist method
+}
+
+// Create Express app
+const app = express();
+app.use(express.json());
+
+// Create the agent and server
+const agent = new MyAgent();
+const server = new DefaultServer(agent);
+
+// Mount the server at /assist endpoint
+app.use('/assist', (req, res) => server.handleRequest(req, res));
+
+// Start the server
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+### Next.js API Route
+
+```typescript
+// pages/api/agent.ts
+import { AbstractAgent, DefaultServer } from 'sentient-agent-framework';
+
+class MyAgent extends AbstractAgent {
+  // Implement assist method
+}
+
+// Create the agent and server
+const agent = new MyAgent();
+const server = new DefaultServer(agent);
+
+// Export the handler for Next.js API routes
+export default async function handler(req, res) {
+  return server.handleRequest(req, res);
+}
+```
+
+### Fastify Server
+
+```typescript
+import Fastify from 'fastify';
+import { AbstractAgent, DefaultServer } from 'sentient-agent-framework';
+
+// Create your agent
+class MyAgent extends AbstractAgent {
+  // Implement assist method
+}
+
+// Create Fastify app
+const fastify = Fastify({
+  logger: true
+});
+
+// Register JSON parser
+fastify.register(require('@fastify/formbody'));
+
+// Create the agent and server
+const agent = new MyAgent();
+const server = new DefaultServer(agent);
+
+// Add route for the agent
+fastify.post('/assist', async (request, reply) => {
+  return server.handleRequest(request.raw, reply.raw);
+});
+
+// Start the server
+fastify.listen({ port: 3000 }, (err) => {
+  if (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+});
+```
+
+## Testing with the CLI
+
+The framework includes a CLI client for testing agents. To use it:
+
+1. Start your agent server:
+```bash
+# Example using the included simple server
+pnpm run example-server
+```
+
+2. In another terminal, run the CLI client:
+```bash
+pnpm run cli
+```
+
+3. Enter the URL of the server (e.g., `http://localhost:3000`) and start chatting with the agent.
+   - The CLI will automatically append "/assist" to the URL if it's not already included
+
+The CLI client will display the events received from the agent, including:
+- Text blocks
+- JSON documents
+- Streaming text
+- Error messages
+
+This provides a convenient way to test your agent implementation without needing to build a full web interface.
+
 ## Documentation
 
 - [Interface Documentation](./interface/README.md)

@@ -272,9 +272,48 @@ graph TD
 - [Interface Documentation](./src/interface/README.md)
 - [Implementation Documentation](./src/implementation/README.md)
 
+## Publishing to npm
+
+To publish this package to npm:
+
+1. Ensure all tests pass:
+```bash
+pnpm run test
+```
+
+2. Build the package:
+```bash
+pnpm run build
+```
+
+3. Update the version in package.json following semantic versioning:
+```bash
+# For patch releases (bug fixes)
+pnpm version patch
+
+# For minor releases (new features, backward compatible)
+pnpm version minor
+
+# For major releases (breaking changes)
+pnpm version major
+```
+
+4. Publish to npm:
+```bash
+pnpm publish
+```
+
+5. Create a GitHub release with release notes.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
