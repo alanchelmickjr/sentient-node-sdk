@@ -1,7 +1,7 @@
 {
   "name": "sentient-agent-framework",
-  "version": "1.0.2",
-  "description": "TypeScript/Node.js implementation of the Sentient Agent Framework",
+  "version": "1.0.3",
+  "description": "TypeScript/Node.js implementation of the Sentient Agent Framework for building AI agents with streaming responses",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -19,6 +19,19 @@
   "bugs": {
     "url": "https://github.com/alanchelmickjr/sentient-node-sdk/issues"
   },
+  "keywords": [
+    "agent",
+    "sentient",
+    "ai",
+    "typescript",
+    "node",
+    "nextjs",
+    "streaming",
+    "sse",
+    "server-sent-events",
+    "llm",
+    "inference"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

@@ -110,7 +110,33 @@ class MyAgent extends AbstractAgent {
   }
 
   async assist(session, query, responseHandler) {
-    // Implementation as above
+    // Emit a text block
+    await responseHandler.emitTextBlock('THINKING', 'Processing your query...');
+    
+    // Emit a JSON document with the query details
+    await responseHandler.emitJson('QUERY_DETAILS', {
+      query: query.prompt,
+      timestamp: new Date().toISOString(),
+      session_id: session.processor_id
+    });
+    
+    // Create a text stream for the response
+    const stream = responseHandler.createTextStream('RESPONSE');
+    
+    // Stream the response word by word
+    const words = `Hello! You asked: "${query.prompt}". This is a streaming response from the Express server.`.split(' ');
+    
+    for (const word of words) {
+      await stream.emitChunk(word + ' ');
+      // Small delay between words
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Complete the stream
+    await stream.complete();
+    
+    // Complete the response
+    await responseHandler.complete();
   }
 }
 
@@ -144,7 +170,33 @@ class MyAgent extends AbstractAgent {
   }
 
   async assist(session, query, responseHandler) {
-    // Implementation as above
+    // Emit a text block
+    await responseHandler.emitTextBlock('THINKING', 'Processing your query...');
+    
+    // Emit a JSON document with the query details
+    await responseHandler.emitJson('QUERY_DETAILS', {
+      query: query.prompt,
+      timestamp: new Date().toISOString(),
+      session_id: session.processor_id
+    });
+    
+    // Create a text stream for the response
+    const stream = responseHandler.createTextStream('RESPONSE');
+    
+    // Stream the response word by word
+    const words = `Hello! You asked: "${query.prompt}". This is a streaming response from the Fastify server.`.split(' ');
+    
+    for (const word of words) {
+      await stream.emitChunk(word + ' ');
+      // Small delay between words
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Complete the stream
+    await stream.complete();
+    
+    // Complete the response
+    await responseHandler.complete();
   }
 }
 
@@ -177,36 +229,100 @@ fastify.listen({ port: 3000 }, (err) => {
 ### 4. Client Usage
 
 ```typescript
-import { SentientAgentClient } from 'sentient-agent-framework';
+// client.ts
+import {
+  SentientAgentClient,
+  EventContentType,
+  ResponseEvent,
+  TextChunkEvent,
+  DocumentEvent,
+  TextBlockEvent,
+  ErrorEvent
+} from 'sentient-agent-framework';
+
+/**
+ * Type guards for event types
+ */
+function isTextChunkEvent(event: ResponseEvent): event is TextChunkEvent {
+  return event.content_type === EventContentType.TEXT_STREAM;
+}
+
+function isDocumentEvent(event: ResponseEvent): event is DocumentEvent {
+  return event.content_type === EventContentType.JSON;
+}
+
+function isTextBlockEvent(event: ResponseEvent): event is TextBlockEvent {
+  return event.content_type === EventContentType.TEXTBLOCK;
+}
+
+function isErrorEvent(event: ResponseEvent): event is ErrorEvent {
+  return event.content_type === EventContentType.ERROR;
+}
 
 async function main() {
   // Create a client
   const client = new SentientAgentClient();
   
   // Query an agent
-  for await (const event of client.queryAgent('What is the weather today?', 'http://localhost:3000/assist')) {
-    // Process events based on their type
-    switch (event.content_type) {
-      case 'atomic.textblock':
-        console.log(`${event.event_name}: ${event.content}`);
-        break;
-      case 'chunked.text':
-        process.stdout.write(event.content);
-        break;
-      case 'atomic.json':
-        console.log(`${event.event_name}: ${JSON.stringify(event.content)}`);
-        break;
-      case 'atomic.error':
-        console.error(`Error: ${event.content.error_message}`);
-        break;
-      case 'atomic.done':
-        console.log('\nDone!');
-        break;
+  try {
+    console.log("Querying agent...");
+    
+    // Track stream IDs to handle multiple streams
+    let streamId: string | null = null;
+    
+    for await (const event of client.queryAgent('What is the weather today?', 'http://localhost:3000/assist')) {
+      // Process events based on their type
+      switch (event.content_type) {
+        case EventContentType.TEXTBLOCK:
+          if (isTextBlockEvent(event)) {
+            console.log(`\n${event.event_name}: ${event.content}`);
+          }
+          break;
+          
+        case EventContentType.TEXT_STREAM:
+          if (isTextChunkEvent(event)) {
+            if (streamId !== event.stream_id) {
+              // New stream started
+              streamId = event.stream_id;
+              console.log(`\n${event.event_name}:`);
+            }
+            // Print stream content without line break
+            process.stdout.write(event.content);
+            
+            // Add line break if stream is complete
+            if (event.is_complete) {
+              console.log();
+            }
+          }
+          break;
+          
+        case EventContentType.JSON:
+          if (isDocumentEvent(event)) {
+            console.log(`\n${event.event_name}:`);
+            console.log(JSON.stringify(event.content, null, 2));
+          }
+          break;
+          
+        case EventContentType.ERROR:
+          if (isErrorEvent(event)) {
+            console.error(`\nError: ${event.content.error_message}`);
+            if (event.content.details) {
+              console.error(JSON.stringify(event.content.details, null, 2));
+            }
+          }
+          break;
+          
+        case EventContentType.DONE:
+          console.log('\nDone!');
+          break;
+      }
     }
+  } catch (error) {
+    console.error('Error querying agent:', error);
   }
 }
 
-main().catch(console.error);
+main();
 ## Testing with the CLI
 
 The framework includes a CLI client for testing agents. To use it:
@@ -237,13 +353,57 @@ The CLI client will display the events received from the agent, including:
 
 ## Event Types
 
-The framework supports several event types:
+The framework supports several event types, each with a specific purpose:
 
-1. **TextBlockEvent**: For sending complete text messages
-2. **DocumentEvent**: For sending JSON data
-3. **TextChunkEvent**: For streaming text in chunks
-4. **ErrorEvent**: For sending error messages
-5. **DoneEvent**: For signaling the end of a response
+### 1. TextBlockEvent (`EventContentType.TEXTBLOCK`)
+- **Purpose**: For sending complete text messages in a single event
+- **Use Case**: Sending thinking steps, intermediate results, or any non-streaming text content
+- **Example**:
+  ```typescript
+  await responseHandler.emitTextBlock('THINKING', 'Processing your query...');
+  ```
+
+### 2. DocumentEvent (`EventContentType.JSON`)
+- **Purpose**: For sending structured JSON data
+- **Use Case**: Sending search results, data visualizations, or any structured data
+- **Example**:
+  ```typescript
+  await responseHandler.emitJson('SEARCH_RESULTS', {
+    results: [
+      { title: 'Result 1', url: 'https://example.com/1' },
+      { title: 'Result 2', url: 'https://example.com/2' }
+    ]
+  });
+  ```
+
+### 3. TextChunkEvent (`EventContentType.TEXT_STREAM`)
+- **Purpose**: For streaming text in chunks
+- **Use Case**: Streaming the agent's response in real-time
+- **Example**:
+  ```typescript
+  const stream = responseHandler.createTextStream('RESPONSE');
+  await stream.emitChunk('Hello, ');
+  await stream.emitChunk('world!');
+  await stream.complete();
+  ```
+
+### 4. ErrorEvent (`EventContentType.ERROR`)
+- **Purpose**: For sending error messages
+- **Use Case**: Reporting errors that occur during processing
+- **Example**:
+  ```typescript
+  await responseHandler.emitError('Failed to process query', 500, {
+    details: 'API rate limit exceeded'
+  });
+  ```
+
+### 5. DoneEvent (`EventContentType.DONE`)
+- **Purpose**: For signaling the end of a response
+- **Use Case**: Indicating that the agent has completed processing
+- **Example**:
+  ```typescript
+  await responseHandler.complete(); // Automatically emits a DoneEvent
+  ```
 
 ## Architecture
 
