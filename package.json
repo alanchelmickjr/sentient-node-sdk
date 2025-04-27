@@ -4,6 +4,9 @@
   "description": "TypeScript/Node.js implementation of the Sentient Agent Framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "sentient-cli": "dist/cli.js"
+  },
   "files": [
     "dist/**/*"
   ],
@@ -13,7 +16,10 @@
     "lint": "eslint src --ext .ts,.tsx",
     "test": "jest",
     "clean": "rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "cli": "ts-node src/cli.ts",
+    "start": "node dist/cli.js",
+    "example-server": "ts-node examples/simple-server.ts"
   },
   "keywords": [
     "agent",
@@ -42,6 +48,7 @@
     "prettier": "^3.1.1",
     "rimraf": "^5.0.5",
     "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
   "engines": {

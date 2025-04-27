@@ -207,6 +207,31 @@ async function main() {
 }
 
 main().catch(console.error);
+## Testing with the CLI
+
+The framework includes a CLI client for testing agents. To use it:
+
+1. Start the example server:
+```bash
+# Install dependencies if you haven't already
+pnpm install
+
+# Start the example server
+pnpm run example-server
+```
+
+2. In another terminal, run the CLI client:
+```bash
+pnpm run cli
+```
+
+3. Enter the URL of the server (e.g., `http://localhost:3000/assist`) and start chatting with the agent.
+
+The CLI client will display the events received from the agent, including:
+- Text blocks
+- JSON documents
+- Streaming text
+- Error messages
 ```
 
 ## Event Types
