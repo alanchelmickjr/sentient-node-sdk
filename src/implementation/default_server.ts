@@ -1,3 +1,28 @@
+/**
+ * DefaultServer Implementation
+ *
+ * This module provides a default server implementation for the Sentient Agent Framework.
+ * It creates an Express server that handles agent requests and streams responses using
+ * Server-Sent Events (SSE). The server can be used standalone or integrated with
+ * existing Express, Next.js, or Fastify applications.
+ *
+ * @example
+ * ```typescript
+ * // Create an agent
+ * const agent = new MyAgent();
+ *
+ * // Create a server
+ * const server = new DefaultServer(agent);
+ *
+ * // Run the server
+ * server.run('0.0.0.0', 3000);
+ * ```
+ *
+ * @module sentient-agent-framework/implementation/default-server
+ * @author Alan 56.7 & Claude 3.7 the Magnificent via Roo on SPARC with Love for Sentient AI Berkeley Hackathon
+ * @version 0.1.0
+ */
+
 import express, { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { DefaultHook } from './default_hook';
 import { DefaultResponseHandler } from './default_response_handler';

@@ -1,10 +1,32 @@
+/**
+ * Sentient Agent Framework - Simple Example Server
+ *
+ * This example demonstrates how to create a simple agent using the Sentient Agent Framework.
+ * It creates a server that responds to requests with various event types, including
+ * text blocks, JSON documents, and streaming text.
+ *
+ * Usage:
+ *   pnpm run example-server
+ *
+ * Then in another terminal:
+ *   pnpm run cli
+ *   Enter URL: http://localhost:3000
+ *
+ * @example
+ * // Start the server
+ * pnpm run example-server
+ *
+ * @author Alan 56.7 & Claude 3.7 the Magnificent via Roo on SPARC with Love for Sentient AI Berkeley Hackathon
+ * @version 0.1.0
+ */
+
 import express from 'express';
-import { 
-  AbstractAgent, 
-  DefaultServer, 
-  Session, 
-  Query, 
-  ResponseHandler 
+import {
+  AbstractAgent,
+  DefaultServer,
+  Session,
+  Query,
+  ResponseHandler
 } from '../src';
 
 /**
