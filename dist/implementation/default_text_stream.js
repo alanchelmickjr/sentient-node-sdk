@@ -64,7 +64,7 @@ class DefaultTextStream {
             event_name: this._eventName,
             stream_id: this._streamId,
             is_complete: true,
-            content: ' ' // Empty space as final content
+            content: '' // Empty string as final content
         });
         await this._hook.emit(event);
         this._isComplete = true;

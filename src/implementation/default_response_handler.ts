@@ -137,27 +137,30 @@ export class DefaultResponseHandler implements ResponseHandler {
    * @param data The JSON data to emit.
    */
   async emitJson(
-    eventName: string, 
+    eventName: string,
     data: Record<string, any>
   ): Promise<void> {
     this.verifyResponseStreamIsOpen();
     
     try {
-      // Verify JSON serializable
+      // Verify JSON serializable before creating event
       JSON.stringify(data);
+      await this.emitEvent(createDocumentEvent({
+        source: this._source.id,
+        event_name: eventName,
+        content: data
+      }));
     } catch (e) {
-      throw new AgentError(
-        "Response content must be JSON serializable"
+      // If serialization fails, emit an error event instead
+      await this.emitError(
+        "Response content must be JSON serializable",
+        500,
+        { originalEventName: eventName, error: (e as Error).message }
       );
+      // Re-throw the error after emitting the error event to signal failure
+      console.error("[DefaultResponseHandler][ERROR] Failed to serialize JSON:", e);
+      throw new AgentError(`Failed to serialize JSON response content: ${(e as Error).message}`);
     }
-    
-    const event = createDocumentEvent({
-      source: this._source.id,
-      event_name: eventName,
-      content: data
-    });
-    
-    await this.emitEvent(event);
   }
 
   /**
@@ -166,18 +169,16 @@ export class DefaultResponseHandler implements ResponseHandler {
    * @param content The text content to emit.
    */
   async emitTextBlock(
-    eventName: string, 
+    eventName: string,
     content: string
   ): Promise<void> {
     this.verifyResponseStreamIsOpen();
     
-    const event = createTextBlockEvent({
+    await this.emitEvent(createTextBlockEvent({
       source: this._source.id,
       event_name: eventName,
       content: content
-    });
-    
-    await this.emitEvent(event);
+    }));
   }
 
   /**
@@ -211,20 +212,24 @@ export class DefaultResponseHandler implements ResponseHandler {
    * @param details Additional error details.
    */
   async emitError(
-    errorMessage: string, 
-    errorCode: number = DEFAULT_ERROR_CODE, 
+    errorMessage: string,
+    errorCode: number = DEFAULT_ERROR_CODE,
     details?: Record<string, any>
   ): Promise<void> {
+    // Allow emitting errors even if stream is 'complete' in some scenarios,
+    // but log a warning. Consider if this should throw instead.
+    if (this._isComplete) {
+       console.warn('[DefaultResponseHandler][WARN] Emitting error after response stream marked as complete.');
+    }
+    // Re-introduce check to prevent emitting errors after completion.
     this.verifyResponseStreamIsOpen();
-    
-    const event = createErrorEvent({
+
+    await this.emitEvent(createErrorEvent({
       source: this._source.id,
       error_message: errorMessage,
       error_code: errorCode,
       details
-    });
-    
-    await this.emitEvent(event);
+    }));
   }
 
   /**

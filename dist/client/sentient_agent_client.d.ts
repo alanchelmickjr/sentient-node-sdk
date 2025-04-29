@@ -46,6 +46,10 @@ interface SentientAgentClientOptions {
         request_id: string;
         interactions: any[];
     };
+    /**
+     * Default URL for the agent server.
+     */
+    defaultAgentUrl?: string;
 }
 /**
  * Client for interacting with Sentient Agent Framework.
@@ -55,6 +59,7 @@ export declare class SentientAgentClient {
     private activity_id;
     private request_id;
     private interactions;
+    private defaultAgentUrl;
     /**
      * Create a new SentientAgentClient.
      * @param options Options for the client.
@@ -73,6 +78,19 @@ export declare class SentientAgentClient {
      * @returns An async iterator of response events.
      */
     queryAgent(prompt: string, url?: string): AsyncGenerator<ResponseEvent>;
+    /**
+     * Parses the SSE stream from the response body.
+     * @param reader The ReadableStreamDefaultReader for the response body.
+     * @param decoder The TextDecoder instance.
+     * @returns An async generator yielding ResponseEvent objects.
+     */
+    private parseSSEStream;
+    /**
+     * Parses a single SSE message string into a ServerSentEvent object.
+     * @param message The raw SSE message string.
+     * @returns A ServerSentEvent object or null if parsing fails.
+     */
+    private parseSSEMessage;
     /**
      * Get the current session object.
      * @returns The current session object.

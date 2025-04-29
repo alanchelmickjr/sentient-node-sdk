@@ -51,6 +51,10 @@ interface SentientAgentClientOptions {
     request_id: string;
     interactions: any[];
   };
+  /**
+   * Default URL for the agent server.
+   */
+  defaultAgentUrl?: string;
 }
 
 /**
@@ -61,6 +65,7 @@ export class SentientAgentClient {
   private activity_id: string;
   private request_id: string;
   private interactions: any[];
+  private defaultAgentUrl: string;
 
   /**
    * Create a new SentientAgentClient.
@@ -78,6 +83,8 @@ export class SentientAgentClient {
       this.request_id = ulid();
       this.interactions = [];
     }
+    // Use provided default URL or a sensible default
+    this.defaultAgentUrl = options?.defaultAgentUrl || "http://localhost:8000/assist";
   }
 
   /**
@@ -97,8 +104,9 @@ export class SentientAgentClient {
    */
   async *queryAgent(
     prompt: string,
-    url: string = "http://0.0.0.0:8000/assist"
+    url?: string // Make URL optional
   ): AsyncGenerator<ResponseEvent> {
+    const targetUrl = url || this.defaultAgentUrl; // Use default if not provided
     const query_id = ulid();
     const body = JSON.stringify({
       query: {
@@ -118,7 +126,7 @@ export class SentientAgentClient {
     };
 
     // Create an EventSource for SSE
-    const response = await fetch(url, {
+    const response = await fetch(targetUrl, {
       method: "POST",
       headers,
       body
@@ -137,40 +145,89 @@ export class SentientAgentClient {
     let buffer = "";
 
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          break;
-        }
-        
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete SSE messages
-        const messages = buffer.split("\n\n");
-        buffer = messages.pop() || ""; // Keep the last incomplete message in the buffer
-        
-        for (const message of messages) {
-          if (!message.trim()) continue;
-          
-          const lines = message.split("\n");
-          const eventType = lines[0].startsWith("event:") ? lines[0].slice(6).trim() : "";
-          const data = lines[1].startsWith("data:") ? lines[1].slice(5).trim() : "";
-          
-          if (eventType && data) {
-            const sseEvent: ServerSentEvent = {
-              event: eventType,
-              data,
-              json: () => JSON.parse(data)
-            };
-            
-            yield await this.processEvent(sseEvent);
-          }
-        }
-      }
+      yield* this.parseSSEStream(reader, decoder);
     } finally {
       reader.releaseLock();
     }
+  }
+
+  /**
+   * Parses the SSE stream from the response body.
+   * @param reader The ReadableStreamDefaultReader for the response body.
+   * @param decoder The TextDecoder instance.
+   * @returns An async generator yielding ResponseEvent objects.
+   */
+  private async *parseSSEStream(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    decoder: TextDecoder
+  ): AsyncGenerator<ResponseEvent> {
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        // Process any remaining data in the buffer after the stream ends
+        if (buffer.trim()) {
+           const sseEvent = this.parseSSEMessage(buffer);
+           if (sseEvent) {
+             yield await this.processEvent(sseEvent);
+           }
+        }
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process complete SSE messages
+      const messages = buffer.split("\n\n");
+      buffer = messages.pop() || ""; // Keep the last incomplete message
+
+      for (const message of messages) {
+         const sseEvent = this.parseSSEMessage(message);
+         if (sseEvent) {
+           yield await this.processEvent(sseEvent);
+         }
+      }
+    }
+  }
+
+  /**
+   * Parses a single SSE message string into a ServerSentEvent object.
+   * @param message The raw SSE message string.
+   * @returns A ServerSentEvent object or null if parsing fails.
+   */
+  private parseSSEMessage(message: string): ServerSentEvent | null {
+    if (!message.trim()) return null;
+
+    const lines = message.split("\n");
+    let eventType = "";
+    let data = "";
+
+    for (const line of lines) {
+        if (line.startsWith("event:")) {
+            eventType = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+            // Accumulate data lines if they exist
+            data += (data ? "\n" : "") + line.slice(5).trim();
+        }
+        // Ignore other lines like id:, retry:, comments (:)
+    }
+
+    if (eventType && data) {
+      try {
+        // Attempt to parse immediately to catch errors early
+        const jsonData = JSON.parse(data);
+        return {
+          event: eventType,
+          data,
+          json: () => jsonData // Return pre-parsed JSON
+        };
+      } catch (e) {
+         console.error("Failed to parse SSE data as JSON:", data, e);
+         return null; // Or handle error appropriately
+      }
+    }
+    return null;
   }
 
   /**

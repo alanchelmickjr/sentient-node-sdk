@@ -152,63 +152,7 @@ class SentientAgentClientCLI {
                 const assistUrl = url.endsWith('/assist') ? url : `${url}/assist`;
                 console.log(`Connecting to: ${assistUrl}`);
                 for await (const event of this.client.queryAgent(prompt, assistUrl)) {
-                    // Handle different event types
-                    switch (event.content_type) {
-                        case events_1.EventContentType.DONE:
-                            console.log();
-                            this.printHorizontalLine();
-                            break;
-                        case events_1.EventContentType.TEXT_STREAM:
-                            if (isTextChunkEvent(event)) {
-                                if (streamId !== event.stream_id) {
-                                    // Update stream id
-                                    streamId = event.stream_id;
-                                    // Print empty line
-                                    console.log();
-                                    // Print event name only once for each stream
-                                    console.log(event.event_name);
-                                }
-                                // Print stream
-                                process.stdout.write(event.content);
-                                if (event.is_complete) {
-                                    console.log();
-                                }
-                            }
-                            break;
-                        case events_1.EventContentType.JSON:
-                            if (isDocumentEvent(event)) {
-                                // Print event type
-                                console.log(event.event_name);
-                                // Pretty print event data
-                                console.log(JSON.stringify(event.content, null, 4));
-                                // Print empty line
-                                console.log();
-                            }
-                            break;
-                        case events_1.EventContentType.TEXTBLOCK:
-                            if (isTextBlockEvent(event)) {
-                                // Print event type
-                                console.log(event.event_name);
-                                // Print content
-                                console.log(event.content);
-                                // Print empty line
-                                console.log();
-                            }
-                            break;
-                        case events_1.EventContentType.ERROR:
-                            if (isErrorEvent(event)) {
-                                // Print event type
-                                console.log(event.event_name);
-                                // Print error message
-                                console.log(`Error: ${event.content.error_message}`);
-                                if (event.content.details) {
-                                    console.log(JSON.stringify(event.content.details, null, 4));
-                                }
-                                // Print empty line
-                                console.log();
-                            }
-                            break;
-                    }
+                    streamId = this.handleEvent(event, streamId);
                 }
             }
             catch (error) {
@@ -218,6 +162,76 @@ class SentientAgentClientCLI {
             }
         }
         this.rl.close();
+    }
+    /**
+     * Handle a single response event.
+     * @param event The response event.
+     * @param currentStreamId The current stream ID being processed.
+     * @returns The updated stream ID.
+     */
+    handleEvent(event, currentStreamId) {
+        let updatedStreamId = currentStreamId;
+        switch (event.content_type) {
+            case events_1.EventContentType.DONE:
+                this.handleDoneEvent();
+                break;
+            case events_1.EventContentType.TEXT_STREAM:
+                if (isTextChunkEvent(event)) {
+                    updatedStreamId = this.handleTextChunkEvent(event, currentStreamId);
+                }
+                break;
+            case events_1.EventContentType.JSON:
+                if (isDocumentEvent(event)) {
+                    this.handleDocumentEvent(event);
+                }
+                break;
+            case events_1.EventContentType.TEXTBLOCK:
+                if (isTextBlockEvent(event)) {
+                    this.handleTextBlockEvent(event);
+                }
+                break;
+            case events_1.EventContentType.ERROR:
+                if (isErrorEvent(event)) {
+                    this.handleErrorEvent(event);
+                }
+                break;
+        }
+        return updatedStreamId;
+    }
+    handleDoneEvent() {
+        console.log();
+        this.printHorizontalLine();
+    }
+    handleTextChunkEvent(event, currentStreamId) {
+        let updatedStreamId = currentStreamId;
+        if (currentStreamId !== event.stream_id) {
+            updatedStreamId = event.stream_id;
+            console.log(); // Start new line for new stream
+            console.log(event.event_name); // Print event name once
+        }
+        process.stdout.write(event.content);
+        if (event.is_complete) {
+            console.log(); // End line after stream completion
+        }
+        return updatedStreamId;
+    }
+    handleDocumentEvent(event) {
+        console.log(event.event_name);
+        console.log(JSON.stringify(event.content, null, 4));
+        console.log();
+    }
+    handleTextBlockEvent(event) {
+        console.log(event.event_name);
+        console.log(event.content);
+        console.log();
+    }
+    handleErrorEvent(event) {
+        console.log(event.event_name);
+        console.error(`Error: ${event.content.error_message}`);
+        if (event.content.details) {
+            console.error(JSON.stringify(event.content.details, null, 4));
+        }
+        console.log();
     }
 }
 // Run the CLI

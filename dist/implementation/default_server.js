@@ -106,9 +106,32 @@ class DefaultServer {
         const hook = new default_hook_1.DefaultHook({ queue: responseQueue });
         const responseHandler = new default_response_handler_1.DefaultResponseHandler(identity, hook);
         // Start assist task (assume Promise)
+        // Start assist task and handle potential errors
         this._agent.assist(session, agentReq.query, responseHandler)
-            .then(() => console.info('[DefaultServer][LOG] Agent assist completed.'))
-            .catch(err => console.error('[DefaultServer][LOG] Agent assist error:', err));
+            .then(() => {
+            console.info('[DefaultServer][LOG] Agent assist promise resolved.');
+            // Ensure completion is signaled if agent finishes without explicitly calling complete()
+            if (!responseHandler.isComplete) {
+                console.warn('[DefaultServer][WARN] Agent assist promise resolved but handler not complete. Forcing completion.');
+                return responseHandler.complete();
+            }
+        })
+            .catch(async (err) => {
+            console.error('[DefaultServer][ERROR] Agent assist error:', err);
+            // Ensure error is emitted back to client if stream is still open
+            if (!responseHandler.isComplete) {
+                try {
+                    await responseHandler.emitError(err.message || 'Agent assist failed', err.code || 500, { stack: err.stack });
+                    // Ensure stream is closed after error
+                    await responseHandler.complete();
+                }
+                catch (emitErr) {
+                    console.error('[DefaultServer][ERROR] Failed to emit error back to client:', emitErr);
+                }
+            }
+            // Mark as done to stop the streaming loop even on error
+            done = true;
+        });
         // Simulate event streaming from queue
         let done = false;
         while (!done) {

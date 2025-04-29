@@ -4,3 +4,5 @@
 /.env
 /.env.local
 /.env.development.local
+.roo
+/.roo

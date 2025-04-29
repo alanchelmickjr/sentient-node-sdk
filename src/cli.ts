@@ -142,67 +142,7 @@ class SentientAgentClientCLI {
         console.log(`Connecting to: ${assistUrl}`);
         
         for await (const event of this.client.queryAgent(prompt, assistUrl)) {
-          // Handle different event types
-          switch (event.content_type) {
-            case EventContentType.DONE:
-              console.log();
-              this.printHorizontalLine();
-              break;
-
-            case EventContentType.TEXT_STREAM:
-              if (isTextChunkEvent(event)) {
-                if (streamId !== event.stream_id) {
-                  // Update stream id
-                  streamId = event.stream_id;
-                  // Print empty line
-                  console.log();
-                  // Print event name only once for each stream
-                  console.log(event.event_name);
-                }
-                // Print stream
-                process.stdout.write(event.content);
-                if (event.is_complete) {
-                  console.log();
-                }
-              }
-              break;
-
-            case EventContentType.JSON:
-              if (isDocumentEvent(event)) {
-                // Print event type
-                console.log(event.event_name);
-                // Pretty print event data
-                console.log(JSON.stringify(event.content, null, 4));
-                // Print empty line
-                console.log();
-              }
-              break;
-
-            case EventContentType.TEXTBLOCK:
-              if (isTextBlockEvent(event)) {
-                // Print event type
-                console.log(event.event_name);
-                // Print content
-                console.log(event.content);
-                // Print empty line
-                console.log();
-              }
-              break;
-
-            case EventContentType.ERROR:
-              if (isErrorEvent(event)) {
-                // Print event type
-                console.log(event.event_name);
-                // Print error message
-                console.log(`Error: ${event.content.error_message}`);
-                if (event.content.details) {
-                  console.log(JSON.stringify(event.content.details, null, 4));
-                }
-                // Print empty line
-                console.log();
-              }
-              break;
-          }
+          streamId = this.handleEvent(event, streamId);
         }
       } catch (error) {
         console.error('Error querying agent:', error);
@@ -212,6 +152,82 @@ class SentientAgentClientCLI {
     }
 
     this.rl.close();
+  }
+
+  /**
+   * Handle a single response event.
+   * @param event The response event.
+   * @param currentStreamId The current stream ID being processed.
+   * @returns The updated stream ID.
+   */
+  private handleEvent(event: ResponseEvent, currentStreamId: string | null): string | null {
+    let updatedStreamId = currentStreamId;
+    switch (event.content_type) {
+      case EventContentType.DONE:
+        this.handleDoneEvent();
+        break;
+      case EventContentType.TEXT_STREAM:
+        if (isTextChunkEvent(event)) {
+          updatedStreamId = this.handleTextChunkEvent(event, currentStreamId);
+        }
+        break;
+      case EventContentType.JSON:
+        if (isDocumentEvent(event)) {
+          this.handleDocumentEvent(event);
+        }
+        break;
+      case EventContentType.TEXTBLOCK:
+        if (isTextBlockEvent(event)) {
+          this.handleTextBlockEvent(event);
+        }
+        break;
+      case EventContentType.ERROR:
+        if (isErrorEvent(event)) {
+          this.handleErrorEvent(event);
+        }
+        break;
+    }
+    return updatedStreamId;
+  }
+
+  private handleDoneEvent(): void {
+    console.log();
+    this.printHorizontalLine();
+  }
+
+  private handleTextChunkEvent(event: TextChunkEvent, currentStreamId: string | null): string | null {
+    let updatedStreamId = currentStreamId;
+    if (currentStreamId !== event.stream_id) {
+      updatedStreamId = event.stream_id;
+      console.log(); // Start new line for new stream
+      console.log(event.event_name); // Print event name once
+    }
+    process.stdout.write(event.content);
+    if (event.is_complete) {
+      console.log(); // End line after stream completion
+    }
+    return updatedStreamId;
+  }
+
+  private handleDocumentEvent(event: DocumentEvent): void {
+    console.log(event.event_name);
+    console.log(JSON.stringify(event.content, null, 4));
+    console.log();
+  }
+
+  private handleTextBlockEvent(event: TextBlockEvent): void {
+    console.log(event.event_name);
+    console.log(event.content);
+    console.log();
+  }
+
+  private handleErrorEvent(event: ErrorEvent): void {
+    console.log(event.event_name);
+    console.error(`Error: ${event.content.error_message}`);
+    if (event.content.details) {
+      console.error(JSON.stringify(event.content.details, null, 4));
+    }
+    console.log();
   }
 }
 

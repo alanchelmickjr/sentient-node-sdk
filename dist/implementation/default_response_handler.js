@@ -110,18 +110,21 @@ class DefaultResponseHandler {
     async emitJson(eventName, data) {
         this.verifyResponseStreamIsOpen();
         try {
-            // Verify JSON serializable
+            // Verify JSON serializable before creating event
             JSON.stringify(data);
+            await this.emitEvent((0, event_factories_1.createDocumentEvent)({
+                source: this._source.id,
+                event_name: eventName,
+                content: data
+            }));
         }
         catch (e) {
-            throw new exceptions_1.AgentError("Response content must be JSON serializable");
+            // If serialization fails, emit an error event instead
+            await this.emitError("Response content must be JSON serializable", 500, { originalEventName: eventName, error: e.message });
+            // Re-throw the error after emitting the error event to signal failure
+            console.error("[DefaultResponseHandler][ERROR] Failed to serialize JSON:", e);
+            throw new exceptions_1.AgentError(`Failed to serialize JSON response content: ${e.message}`);
         }
-        const event = (0, event_factories_1.createDocumentEvent)({
-            source: this._source.id,
-            event_name: eventName,
-            content: data
-        });
-        await this.emitEvent(event);
     }
     /**
      * Emit a text block as an event.
@@ -130,12 +133,11 @@ class DefaultResponseHandler {
      */
     async emitTextBlock(eventName, content) {
         this.verifyResponseStreamIsOpen();
-        const event = (0, event_factories_1.createTextBlockEvent)({
+        await this.emitEvent((0, event_factories_1.createTextBlockEvent)({
             source: this._source.id,
             event_name: eventName,
             content: content
-        });
-        await this.emitEvent(event);
+        }));
     }
     /**
      * Create a new text stream for emitting chunks of text.
@@ -163,14 +165,19 @@ class DefaultResponseHandler {
      * @param details Additional error details.
      */
     async emitError(errorMessage, errorCode = events_1.DEFAULT_ERROR_CODE, details) {
+        // Allow emitting errors even if stream is 'complete' in some scenarios,
+        // but log a warning. Consider if this should throw instead.
+        if (this._isComplete) {
+            console.warn('[DefaultResponseHandler][WARN] Emitting error after response stream marked as complete.');
+        }
+        // Re-introduce check to prevent emitting errors after completion.
         this.verifyResponseStreamIsOpen();
-        const event = (0, event_factories_1.createErrorEvent)({
+        await this.emitEvent((0, event_factories_1.createErrorEvent)({
             source: this._source.id,
             error_message: errorMessage,
             error_code: errorCode,
             details
-        });
-        await this.emitEvent(event);
+        }));
     }
     /**
      * Mark the response as complete.
