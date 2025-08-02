@@ -101,16 +101,18 @@ export class ResponseEventAdapter {
    * @throws Error if the JSON object is not a valid text chunk event.
    */
   private static validateTextChunkEvent(json: any): TextChunkEvent {
-    if (!json.stream_id) {
-      throw new Error('Invalid TextChunkEvent: missing stream_id');
-    }
-
     if (json.is_complete === undefined) {
       throw new Error('Invalid TextChunkEvent: missing is_complete');
     }
 
-    if (!json.content || typeof json.content !== 'string') {
+    if (typeof json.content !== 'string') {
       throw new Error('Invalid TextChunkEvent: content must be a string');
+    }
+
+    if (!json.is_complete && !json.content) {
+      throw new Error(
+        'Invalid TextChunkEvent: content must be a non-empty string when is_complete is false'
+      );
     }
 
     return json as TextChunkEvent;
