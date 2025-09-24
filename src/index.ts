@@ -19,11 +19,13 @@ export * from './interface/events';
 export * from './interface/exceptions';
 export * from './interface/hook';
 export * from './interface/identity';
-export * from './interface/request';
 export * from './interface/response_handler';
-export * from './interface/session';
 export * from './interface/agent';
 export * from './interface/llm';
+
+// Export interfaces with naming conflict resolution
+export type { Query, Request as SimpleRequest } from './interface/request';
+export * from './interface/session';
 
 // Export event factories
 export * from './interface/event_factories';

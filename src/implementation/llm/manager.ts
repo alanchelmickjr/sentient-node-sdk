@@ -254,8 +254,12 @@ class IntelligentProviderSelector implements ProviderSelector {
       const metrics = provider.getMetrics();
       const capabilities = provider.capabilities;
       
-      // Check model capability
-      const supportsModel = capabilities.models.some((m: any) => m.name === request.model);
+      // Check model capability - be more flexible with model matching
+      const supportsModel = capabilities.models.some((m: any) =>
+        m.name === request.model ||
+        m.displayName?.toLowerCase().includes(request.model.toLowerCase()) ||
+        request.model.toLowerCase().includes(m.name.toLowerCase())
+      );
       if (!supportsModel) {
         continue;
       }
@@ -334,30 +338,48 @@ class IntelligentProviderSelector implements ProviderSelector {
   }
   
   private async applySelectionStrategy(
-    providers: LLMProvider[], 
+    providers: LLMProvider[],
     context: SelectionContext
   ): Promise<LLMProvider> {
+    // First filter providers that can handle the requested model
+    const capableProviders = providers.filter(provider => {
+      const capabilities = provider.capabilities;
+      const supportsModel = capabilities.models.some((m: any) =>
+        m.name === context.request.model ||
+        m.displayName?.toLowerCase().includes(context.request.model.toLowerCase()) ||
+        context.request.model.toLowerCase().includes(m.name.toLowerCase())
+      );
+      return supportsModel;
+    });
+    
+    if (capableProviders.length === 0) {
+      throw new ProviderUnavailableError(`No providers support model: ${context.request.model}`);
+    }
+    
+    // Apply strategy to capable providers only
+    const targetProviders = capableProviders;
+    
     switch (this.strategy) {
       case SelectionStrategy.ROUND_ROBIN:
-        return this.selectRoundRobin(providers);
+        return this.selectRoundRobin(targetProviders);
       
       case SelectionStrategy.RANDOM:
-        return providers[Math.floor(Math.random() * providers.length)];
+        return targetProviders[Math.floor(Math.random() * targetProviders.length)];
       
       case SelectionStrategy.LEAST_LOADED:
-        return this.selectLeastLoaded(providers);
+        return this.selectLeastLoaded(targetProviders);
       
       case SelectionStrategy.FASTEST:
-        return this.selectFastest(providers);
+        return this.selectFastest(targetProviders);
       
       case SelectionStrategy.CHEAPEST:
-        return this.selectCheapest(providers, context.request);
+        return this.selectCheapest(targetProviders, context.request);
       
       case SelectionStrategy.HIGHEST_QUALITY:
-        return this.selectHighestQuality(providers, context.request);
+        return this.selectHighestQuality(targetProviders, context.request);
       
       default:
-        return providers[0];
+        return targetProviders[0];
     }
   }
   
@@ -632,6 +654,9 @@ export class ProductionLLMManager extends EventEmitter implements LLMManager {
     
     this.failoverManager = new AdvancedFailoverManager(config.failover);
     this.metricsAggregator = new MetricsAggregator();
+    
+    // Set providers reference for metrics collection
+    this.metricsAggregator.setProviders(this.providers);
   }
   
   async initialize(): Promise<void> {
@@ -673,6 +698,9 @@ export class ProductionLLMManager extends EventEmitter implements LLMManager {
   
   async registerProvider(provider: LLMProvider): Promise<void> {
     this.providers.set(provider.providerId, provider);
+    
+    // Update metrics aggregator with new providers map
+    this.metricsAggregator.setProviders(this.providers);
     
     // Set up provider event listeners
     provider.on('statusChanged', (status: ProviderStatus) => {
@@ -728,10 +756,18 @@ export class ProductionLLMManager extends EventEmitter implements LLMManager {
       });
       
       this.failoverManager.recordSuccess(selection.provider.providerId);
+      
+      // Update metrics immediately after successful generation
+      this.metricsAggregator.updateMetrics();
+      
       return response;
       
     } catch (error) {
       this.failoverManager.recordFailure(selection.provider.providerId, error as Error);
+      
+      // Update metrics immediately after failed generation
+      this.metricsAggregator.updateMetrics();
+      
       throw error;
     }
   }
@@ -764,8 +800,15 @@ export class ProductionLLMManager extends EventEmitter implements LLMManager {
       
       this.failoverManager.recordSuccess(selection.provider.providerId);
       
+      // Update metrics immediately after successful streaming
+      this.metricsAggregator.updateMetrics();
+      
     } catch (error) {
       this.failoverManager.recordFailure(selection.provider.providerId, error as Error);
+      
+      // Update metrics immediately after failed streaming
+      this.metricsAggregator.updateMetrics();
+      
       throw error;
     }
   }
@@ -789,7 +832,7 @@ export class ProductionLLMManager extends EventEmitter implements LLMManager {
   }
   
   async selectProvider(context: SelectionContext): Promise<SelectionResult> {
-    const availableProviders = this.getProviders().filter(p => 
+    const availableProviders = this.getProviders().filter(p =>
       !this.failoverManager.isProviderExcluded(p.providerId)
     );
     
@@ -936,6 +979,18 @@ export class ProductionLLMManager extends EventEmitter implements LLMManager {
  */
 class MetricsAggregator {
   private lastCollection: Date = new Date();
+  private cachedMetrics?: AggregatedMetrics;
+  private providers?: Map<string, LLMProvider>;
+  
+  setProviders(providers: Map<string, LLMProvider>): void {
+    this.providers = providers;
+  }
+  
+  updateMetrics(): void {
+    if (this.providers) {
+      this.cachedMetrics = this.collectMetrics(this.providers);
+    }
+  }
   
   collectMetrics(providers: Map<string, LLMProvider>): AggregatedMetrics {
     const byProvider: Record<string, ProviderMetrics> = {};
@@ -999,7 +1054,17 @@ class MetricsAggregator {
   }
   
   getAggregatedMetrics(): AggregatedMetrics {
-    // Return cached or empty metrics
+    // Return cached metrics if available, otherwise collect fresh metrics
+    if (this.cachedMetrics) {
+      return this.cachedMetrics;
+    }
+    
+    if (this.providers) {
+      this.cachedMetrics = this.collectMetrics(this.providers);
+      return this.cachedMetrics;
+    }
+    
+    // Fallback to empty metrics
     return {
       byProvider: {},
       totals: {

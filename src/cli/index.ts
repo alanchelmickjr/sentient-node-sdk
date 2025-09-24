@@ -164,4 +164,5 @@ if (require.main === module) {
   main().catch(console.error);
 }
 
-export { SentientAgentCLI, CLIConfig };
+export { SentientAgentCLI };
+export type { CLIConfig };

@@ -375,6 +375,7 @@ export class SentientProvider extends BaseLLMProvider {
   private personalityCache: Map<string, any> = new Map();
   private creativityOptimizer: CreativityOptimizer;
   private dobbyEngine: DobbyUnhingedEngine;
+  private _sentientConfig: SentientProviderConfig;
   
   constructor(config: SentientProviderConfig) {
     super(
@@ -384,6 +385,9 @@ export class SentientProvider extends BaseLLMProvider {
       config,
       SentientProvider.createCapabilities()
     );
+    
+    // Store typed config for accessing Sentient-specific properties
+    this._sentientConfig = config;
     
     this.client = new SentientClient({
       apiKey: config.apiKey,
@@ -409,7 +413,7 @@ export class SentientProvider extends BaseLLMProvider {
         throw new SentientError(
           `Request validation failed: ${validation.errors.join(', ')}`,
           'validation_error',
-          this._config.modelVariant,
+          this._sentientConfig.modelVariant,
           request.metadata.requestId
         );
       }
@@ -468,7 +472,7 @@ export class SentientProvider extends BaseLLMProvider {
         throw new SentientError(
           `Request validation failed: ${validation.errors.join(', ')}`,
           'validation_error',
-          this._config.modelVariant,
+          this._sentientConfig.modelVariant,
           request.metadata.requestId
         );
       }
@@ -556,7 +560,7 @@ export class SentientProvider extends BaseLLMProvider {
       throw new SentientError(
         `Failed to initialize Sentient provider: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'initialization_error',
-        this._config.modelVariant
+        this._sentientConfig.modelVariant
       );
     }
   }

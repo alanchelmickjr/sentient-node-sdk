@@ -365,7 +365,8 @@ export abstract class BaseLLMProvider extends EventEmitter implements LLMProvide
         apiErrors: 0,
         timeoutErrors: 0,
         rateLimitErrors: 0
-      }
+      },
+      timestamp: new Date()
     };
   }
   
