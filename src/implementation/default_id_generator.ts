@@ -1,63 +1,44 @@
+import { ULID, ulid } from 'ulid';
+
 /**
- * DefaultIdGenerator: Generates monotonic ULIDs for event IDs.
- * NOTE: Requires 'ulid' npm package. Install with: npm install ulid
+ * ULID generator that tracks the latest identifier and ensures that the
+ * next identifier is always greater than the latest.
  */
-
-import { ulid, monotonicFactory } from 'ulid';
-
-class AsyncLock {
-  private _locked = false;
-  private _waiting: Array<() => void> = [];
-
-  async acquire(): Promise<void> {
-    if (!this._locked) {
-      this._locked = true;
-      return;
-    }
-    await new Promise<void>(resolve => this._waiting.push(resolve));
-  }
-
-  release(): void {
-    if (this._waiting.length > 0) {
-      const next = this._waiting.shift();
-      if (next) next();
-    } else {
-      this._locked = false;
-    }
-  }
-}
-
 export class DefaultIdGenerator {
-  private _latestId: string;
-  private _lock: AsyncLock;
-  private _monotonicUlid: () => string;
+  private _latest_id: ULID;
+  private _lock: Promise<void> = Promise.resolve();
 
-  constructor(seedId?: string) {
-    this._latestId = seedId ?? ulid();
-    this._lock = new AsyncLock();
-    this._monotonicUlid = monotonicFactory();
+  constructor(seed_id?: ULID) {
+    this._latest_id = seed_id || ulid();
   }
 
   /**
-   * Generate the next ULID. If a newId is provided and is greater than the latest, use it.
-   * Otherwise, generate a new ULID strictly greater than the previous.
-   * @param newId Optionally provide a new ULID string.
-   * @param offset Not used in JS; for compatibility.
+   * Generate the next identifier.
+   * @param new_id - The user suggested new identifier to use.
+   * @param offset - The offset in milliseconds to add if the new id is not greater.
+   * @returns The next ULID as a string.
    */
-  async getNextId(newId?: string, offset: number = 10): Promise<string> {
-    await this._lock.acquire();
+  async getNextId(new_id?: ULID | string, offset: number = 10): Promise<string> {
+    let release: () => void;
+    const lockPromise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const previousLock = this._lock;
+    this._lock = lockPromise;
+
+    await previousLock;
+
     try {
-      let resolvedNewId = newId ?? this._monotonicUlid();
-      if (resolvedNewId <= this._latestId) {
-        // Re-generate to ensure monotonicity
-        resolvedNewId = this._monotonicUlid();
+      let resolved_new_id = new_id ? new ULID(new_id) : ulid();
+
+      if (resolved_new_id.toString() <= this._latest_id.toString()) {
+        resolved_new_id = ULID.fromTimestamp(this._latest_id.millis() + offset);
       }
-      this._latestId = resolvedNewId;
-      // LOG: id generation
-      console.info('[DefaultIdGenerator][LOG] Generated new ID:', resolvedNewId);
-      return resolvedNewId;
+      this._latest_id = resolved_new_id;
+      return this._latest_id.toString();
     } finally {
-      this._lock.release();
+      release!();
     }
   }
 }
