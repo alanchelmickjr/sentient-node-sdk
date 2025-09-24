@@ -23,6 +23,7 @@ export * from './interface/request';
 export * from './interface/response_handler';
 export * from './interface/session';
 export * from './interface/agent';
+export * from './interface/llm';
 
 // Export event factories
 export * from './interface/event_factories';
@@ -34,6 +35,7 @@ export * from './implementation/default_text_stream';
 export * from './implementation/default_response_handler';
 export * from './implementation/default_session';
 export * from './implementation/default_server';
+export * from './implementation/async_queue';
 
 // Export ResponseEventAdapter implementation with a different name to avoid naming conflicts
 import { ResponseEventAdapter as ResponseEventAdapterImpl } from './implementation/response_event_adapter';

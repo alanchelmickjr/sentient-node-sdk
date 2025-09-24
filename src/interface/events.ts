@@ -29,7 +29,7 @@ export enum EventContentType {
   DONE = "atomic.done",
 }
 
-export type EventMetadata = Record<string, string | number | boolean | string[] | number[] | boolean[]>;
+export type EventMetadata = Record<string, string | number | boolean>;
 
 export interface Event {
   content_type: EventContentType;

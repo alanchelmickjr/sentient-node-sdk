@@ -1,4 +1,5 @@
 import { DefaultIdGenerator } from './default_id_generator';
+import { AsyncQueue } from './async_queue';
 import { BaseEvent, Event } from '../interface/events';
 import { Hook } from '../interface/hook';
 
@@ -7,16 +8,16 @@ import { Hook } from '../interface/hook';
  * Default implementation of the Hook protocol.
  */
 export class DefaultHook implements Hook {
-  private _queue: Array<Event>;
+  private _queue: AsyncQueue<Event>;
   private _idGenerator: DefaultIdGenerator;
   private _timeoutMs?: number;
 
   constructor(options: {
-    queue?: Array<Event>;
+    queue?: AsyncQueue<Event>;
     idGenerator?: DefaultIdGenerator;
     timeoutMs?: number;
   } = {}) {
-    this._queue = options.queue ?? [];
+    this._queue = options.queue ?? new AsyncQueue<Event>();
     this._idGenerator = options.idGenerator ?? new DefaultIdGenerator();
     this._timeoutMs = options.timeoutMs;
   }
@@ -34,28 +35,41 @@ export class DefaultHook implements Hook {
     const baseEvent = event as BaseEvent;
     baseEvent.id = await this._idGenerator.getNextId(baseEvent.id);
 
-    // Emulate queue put with timeout
+    // Use async queue
     if (this._timeoutMs == null) {
-      this._queue.push(event);
+      await this._queue.put(event);
       return;
     }
 
     // Timeout logic
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error('Timeout while adding event to queue'));
-      }, this._timeoutMs);
-
-      this._queue.push(event);
-      clearTimeout(timer);
-      resolve();
-    });
+    await Promise.race([
+      this._queue.put(event),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Timeout while adding event to queue'));
+        }, this._timeoutMs);
+      })
+    ]);
   }
 
   /**
-   * Returns current queue (for test/debug use).
+   * Get next event from queue
    */
-  getQueue(): Array<Event> {
-    return this._queue;
+  async getNextEvent(): Promise<Event> {
+    return await this._queue.get();
+  }
+
+  /**
+   * Check if queue is empty
+   */
+  isEmpty(): boolean {
+    return this._queue.empty();
+  }
+
+  /**
+   * Returns current queue items (for test/debug use).
+   */
+  getQueue(): Event[] {
+    return this._queue.getItems();
   }
 }

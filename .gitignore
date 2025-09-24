@@ -6,3 +6,6 @@
 /.env.development.local
 .roo
 /.roo
+/sentient-agent-framework
+/coverage
+/dist
