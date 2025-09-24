@@ -18,6 +18,7 @@ import {
   AnyEnhancedCapabilitySpec
 } from './capability_registry';
 import { ValidationResult } from '../validation/schemas';
+import { SessionPersistenceManager } from './session_persistence_manager';
 
 /**
  * Enhanced Default Session with Capability Management Integration
@@ -30,12 +31,18 @@ export class DefaultSession implements Session {
   private _capabilityManager?: CapabilityManager;
   private _sessionId: string;
   private _enableCapabilityIntegration: boolean;
+  private _persistenceManager?: SessionPersistenceManager;
+  private _enableAutoPersistence: boolean;
+  private _persistenceSessionId?: string;
 
   constructor(
     sessionObject: Partial<SessionObject> = {},
     capabilityManager?: CapabilityManager,
     options: {
       enableCapabilityIntegration?: boolean;
+      persistenceManager?: SessionPersistenceManager;
+      enableAutoPersistence?: boolean;
+      persistenceSessionId?: string;
     } = {}
   ) {
     // Ensure all required fields exist with defaults
@@ -50,9 +57,15 @@ export class DefaultSession implements Session {
     this._sessionId = this._sessionObject.activity_id; // Use activity_id as session identifier
     this._enableCapabilityIntegration = options.enableCapabilityIntegration ?? true;
     
+    // Persistence configuration
+    this._persistenceManager = options.persistenceManager;
+    this._enableAutoPersistence = options.enableAutoPersistence ?? false;
+    this._persistenceSessionId = options.persistenceSessionId || this._sessionId;
+    
     // LOG: Construction
     console.info('[DefaultSession][LOG] Created with sessionObject:', this._sessionObject);
     console.info('[DefaultSession][LOG] Capability integration enabled:', this._enableCapabilityIntegration);
+    console.info('[DefaultSession][LOG] Auto-persistence enabled:', this._enableAutoPersistence);
   }
 
   /**
@@ -309,5 +322,217 @@ export class DefaultSession implements Session {
     }
 
     console.info('[DefaultSession][LOG] Session object updated:', updates);
+    
+    // Auto-persist if enabled
+    if (this._enableAutoPersistence && this._persistenceManager) {
+      this._persistenceManager.markSessionForPersistence(this._persistenceSessionId!);
+    }
+  }
+
+  // ========================================================================
+  // Session Persistence Integration
+  // ========================================================================
+
+  /**
+   * Set persistence manager for this session
+   */
+  setPersistenceManager(manager: SessionPersistenceManager, enableAutoPersistence = false): void {
+    this._persistenceManager = manager;
+    this._enableAutoPersistence = enableAutoPersistence;
+    console.info('[DefaultSession][LOG] Persistence manager set, auto-persistence:', enableAutoPersistence);
+  }
+
+  /**
+   * Get persistence manager
+   */
+  getPersistenceManager(): SessionPersistenceManager | undefined {
+    return this._persistenceManager;
+  }
+
+  /**
+   * Enable or disable auto-persistence
+   */
+  setAutoPersistence(enabled: boolean): void {
+    this._enableAutoPersistence = enabled;
+    console.info('[DefaultSession][LOG] Auto-persistence set to:', enabled);
+  }
+
+  /**
+   * Check if auto-persistence is enabled
+   */
+  isAutoPersistenceEnabled(): boolean {
+    return this._enableAutoPersistence && this._persistenceManager !== undefined;
+  }
+
+  /**
+   * Manually persist this session
+   */
+  async persist(): Promise<string | null> {
+    if (!this._persistenceManager) {
+      console.warn('[DefaultSession][WARN] No persistence manager configured');
+      return null;
+    }
+
+    try {
+      const sessionId = await this._persistenceManager.persistSession(this, this._persistenceSessionId);
+      console.info('[DefaultSession][LOG] Session manually persisted:', sessionId);
+      return sessionId;
+    } catch (error) {
+      console.error('[DefaultSession][ERROR] Failed to persist session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load session data from persistence
+   */
+  async loadFromPersistence(sessionId?: string): Promise<boolean> {
+    if (!this._persistenceManager) {
+      console.warn('[DefaultSession][WARN] No persistence manager configured');
+      return false;
+    }
+
+    const loadSessionId = sessionId || this._persistenceSessionId;
+    if (!loadSessionId) {
+      console.warn('[DefaultSession][WARN] No session ID specified for loading');
+      return false;
+    }
+
+    try {
+      const persistedSession = await this._persistenceManager.getSession(loadSessionId);
+      if (!persistedSession) {
+        console.info('[DefaultSession][LOG] No persisted session found:', loadSessionId);
+        return false;
+      }
+
+      // Update session object with persisted data
+      this.updateSessionObject({
+        processor_id: persistedSession.processor_id,
+        activity_id: persistedSession.activity_id,
+        request_id: persistedSession.request_id,
+        interactions: persistedSession.interactions
+      });
+
+      this._persistenceSessionId = loadSessionId;
+      console.info('[DefaultSession][LOG] Session loaded from persistence:', loadSessionId);
+      return true;
+    } catch (error) {
+      console.error('[DefaultSession][ERROR] Failed to load session from persistence:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Add an interaction to the session and auto-persist if enabled
+   */
+  addInteraction(interaction: Interaction<RequestMessage>): void {
+    this._sessionObject.interactions.push(interaction);
+    console.info('[DefaultSession][LOG] Interaction added, total:', this._sessionObject.interactions.length);
+
+    // Auto-persist if enabled
+    if (this._enableAutoPersistence && this._persistenceManager) {
+      this._persistenceManager.markSessionForPersistence(this._persistenceSessionId!);
+      console.debug('[DefaultSession][DEBUG] Session marked for auto-persistence');
+    }
+  }
+
+  /**
+   * Remove an interaction from the session
+   */
+  removeInteraction(index: number): boolean {
+    if (index < 0 || index >= this._sessionObject.interactions.length) {
+      return false;
+    }
+
+    this._sessionObject.interactions.splice(index, 1);
+    console.info('[DefaultSession][LOG] Interaction removed, total:', this._sessionObject.interactions.length);
+
+    // Auto-persist if enabled
+    if (this._enableAutoPersistence && this._persistenceManager) {
+      this._persistenceManager.markSessionForPersistence(this._persistenceSessionId!);
+    }
+
+    return true;
+  }
+
+  /**
+   * Clear all interactions
+   */
+  clearInteractions(): void {
+    const count = this._sessionObject.interactions.length;
+    this._sessionObject.interactions = [];
+    console.info('[DefaultSession][LOG] All interactions cleared, count:', count);
+
+    // Auto-persist if enabled
+    if (this._enableAutoPersistence && this._persistenceManager) {
+      this._persistenceManager.markSessionForPersistence(this._persistenceSessionId!);
+    }
+  }
+
+  /**
+   * Get session metadata for persistence
+   */
+  getPersistenceMetadata(): Record<string, any> {
+    return {
+      session_type: 'DefaultSession',
+      capability_integration_enabled: this._enableCapabilityIntegration,
+      auto_persistence_enabled: this._enableAutoPersistence,
+      bound_capabilities_count: this.getBoundCapabilities().length,
+      interactions_count: this._sessionObject.interactions.length
+    };
+  }
+
+  /**
+   * Get persistence session ID
+   */
+  getPersistenceSessionId(): string | undefined {
+    return this._persistenceSessionId;
+  }
+
+  /**
+   * Set persistence session ID
+   */
+  setPersistenceSessionId(sessionId: string): void {
+    this._persistenceSessionId = sessionId;
+    console.info('[DefaultSession][LOG] Persistence session ID set:', sessionId);
+  }
+
+  /**
+   * Check if session has unsaved changes (basic implementation)
+   */
+  hasUnsavedChanges(): boolean {
+    // This is a simplified implementation - in a full implementation,
+    // you might track modifications more precisely
+    return this._enableAutoPersistence && this._persistenceManager !== undefined;
+  }
+
+  /**
+   * Get enhanced session information including persistence status
+   */
+  getEnhancedSessionInfoWithPersistence(): {
+    sessionObject: SessionObject;
+    capabilities: {
+      integrationEnabled: boolean;
+      boundCapabilities: SessionCapabilityBinding[];
+      statistics: ReturnType<DefaultSession['getSessionStatistics']>;
+    };
+    persistence: {
+      managerConfigured: boolean;
+      autoPersistenceEnabled: boolean;
+      persistenceSessionId?: string;
+      hasUnsavedChanges: boolean;
+    };
+  } {
+    const basicInfo = this.getEnhancedSessionInfo();
+    
+    return {
+      ...basicInfo,
+      persistence: {
+        managerConfigured: this._persistenceManager !== undefined,
+        autoPersistenceEnabled: this._enableAutoPersistence,
+        persistenceSessionId: this._persistenceSessionId,
+        hasUnsavedChanges: this.hasUnsavedChanges()
+      }
+    };
   }
 }

@@ -1,0 +1,42 @@
+# Example CLI Batch Script
+# This file demonstrates various CLI commands that can be run in batch mode
+
+# Connect to a local agent (adjust URL as needed)
+connect http://localhost:8000
+
+# Show current status
+status
+
+# Create a new session for this conversation
+session create "Example Batch Session"
+
+# Send some test queries
+query Hello! Can you help me understand machine learning?
+
+# Wait for response, then continue
+query What are the main types of machine learning algorithms?
+
+query Can you explain supervised learning with an example?
+
+# Show capabilities if available
+capabilities
+
+# Save the session with a descriptive name
+session save "ML Tutorial Session"
+
+# Show configuration
+config show
+
+# List all sessions
+session list
+
+# Demonstrate debug mode
+debug on
+query This is a debug test message
+debug off
+
+# Show command history
+history 5
+
+# Final status check
+status
