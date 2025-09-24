@@ -99,7 +99,8 @@ export class DefaultResponseHandler implements ResponseHandler {
    */
   async respond(
     eventName: string, 
-    response: string | Record<string, any>
+    response: string | Record<string, any>,
+    complete: boolean = true
   ): Promise<void> {
     this.verifyResponseStreamIsOpen();
     
@@ -128,7 +129,9 @@ export class DefaultResponseHandler implements ResponseHandler {
       await this.emitEvent(event);
     }
 
-    await this.complete();
+    if (complete) {
+      await this.complete();
+    }
   }
 
   /**

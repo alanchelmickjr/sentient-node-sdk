@@ -20,8 +20,8 @@ export interface SessionObject {
  * Extend as needed.
  */
 export interface Session {
-  processor_id: string;
-  activity_id: string;
-  request_id: string;
+  readonly processor_id: string;
+  readonly activity_id: string;
+  readonly request_id: string;
   get_interactions(): AsyncIterable<Interaction>;
 }

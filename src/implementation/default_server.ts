@@ -109,14 +109,12 @@ export class DefaultServer {
     // LOG: Streaming start
     console.info('[DefaultServer][LOG] Starting streamAgentOutput');
 
-    // Create session, identity, queue, hook, response handler
+    // Create session, identity, hook, response handler
     const session = new DefaultSession(agentReq.session || {});
     const identity = new Identity(session.processor_id, this._agent.name);
-    const responseQueue: Array<any> = []; // Replace with async queue if needed
-    const hook = new DefaultHook({ queue: responseQueue });
+    const hook = new DefaultHook();
     const responseHandler = new DefaultResponseHandler(identity, hook);
 
-    // Start assist task (assume Promise)
     // Start assist task and handle potential errors
     this._agent.assist(session, agentReq.query, responseHandler)
       .then(() => {
@@ -143,15 +141,13 @@ export class DefaultServer {
             console.error('[DefaultServer][ERROR] Failed to emit error back to client:', emitErr);
           }
         }
-        // Mark as done to stop the streaming loop even on error
-        done = true;
       });
 
-    // Simulate event streaming from queue
+    // Stream events from hook
     let done = false;
     while (!done) {
-      if (responseQueue.length > 0) {
-        const event = responseQueue.shift();
+      if (!hook.isEmpty()) {
+        const event = await hook.getNextEvent();
         res.write(`event: ${event.event_name}\n`);
         res.write(`data: ${JSON.stringify(event)}\n\n`);
         if (event.content_type === EventContentType.DONE) {

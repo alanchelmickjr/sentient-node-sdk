@@ -7,3 +7,5 @@
 .roo
 /.roo
 /sentient-agent-framework
+/coverage
+/dist

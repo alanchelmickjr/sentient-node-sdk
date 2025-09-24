@@ -84,7 +84,7 @@ export class DefaultTextStream implements StreamEventEmitter<string> {
       event_name: this._eventName,
       stream_id: this._streamId,
       is_complete: true,
-      content: '' // Empty string as final content
+      content: ' ' // Space character as final content to match Python version
     });
     
     await this._hook.emit(event);
