@@ -10,7 +10,7 @@
   "files": [
     "dist/**/*"
   ],
-  "author": "Alan Helmick <alan@talkverse.ai>",
+  "author": "Sentient AGI",
   "homepage": "https://github.com/alanchelmickjr/sentient-node-sdk",
   "repository": {
     "type": "git",
@@ -25,12 +25,7 @@
     "ai",
     "typescript",
     "node",
-    "nextjs",
-    "streaming",
-    "sse",
-    "server-sent-events",
-    "llm",
-    "inference"
+    "nextjs"
   ],
   "scripts": {
     "build": "tsc",
@@ -43,19 +38,13 @@
     "start": "node dist/cli.js",
     "example-server": "ts-node examples/simple-server.ts"
   },
-  "keywords": [
-    "agent",
-    "sentient",
-    "ai",
-    "typescript",
-    "node",
-    "nextjs"
-  ],
-  "author": "Sentient AGI",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.12.2",
+    "events": "^3.3.0",
     "express": "^4.18.2",
     "node-fetch": "^3.3.2",
+    "sentient-agent-framework": "^1.1.1",
     "ulid": "^2.3.0",
     "zod": "^3.22.4"
   },

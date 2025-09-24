@@ -86,13 +86,7 @@ export interface SessionObject {
 
 export interface Session {
   readonly processor_id: string;
-<<<<<<< HEAD
-  readonly activity_id: string;
-  readonly request_id: string;
-  get_interactions(): AsyncIterable<Interaction>;
-=======
   readonly activity_id: string; // ULID
   readonly request_id: string; // ULID
   get_interactions(kwargs?: any): AsyncIterable<Interaction<RequestMessage>>;
->>>>>>> ab916e3 (I made the mistake of trying GitHub CoPilot again... be wary of this committ)
 }

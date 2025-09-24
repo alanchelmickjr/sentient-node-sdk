@@ -1,245 +1,381 @@
-/**
- * SentientAgentClient: Client for interacting with Sentient Agent Framework.
- *
- * This client provides methods for querying agents built with the Sentient Agent Framework
- * and processing the events they emit. It handles Server-Sent Events (SSE) and converts
- * them to strongly-typed response events.
- *
- * @example
- * ```typescript
- * const client = new SentientAgentClient();
- * for await (const event of client.queryAgent('What is the weather?', 'http://localhost:3000/assist')) {
- *   // Process events based on their type
- *   switch (event.content_type) {
- *     case EventContentType.TEXTBLOCK:
- *       console.log(`${event.event_name}: ${event.content}`);
- *       break;
- *     // Handle other event types...
- *   }
- * }
- * ```
- *
- * @module sentient-agent-framework/client
- * @author Alan 56.7 & Claude 3.7 the Magnificent via Roo on SPARC with Love for Sentient AI Berkeley Hackathon
- * @version 0.1.0
- */
+import { EventEmitter } from 'events';
+import axios from 'axios';
+import { ResponseEvent, EventContentType } from '../interface/events';
 
-import { ulid } from 'ulid';
-import { ResponseEvent } from '../interface/events';
-import { ResponseEventAdapter as ResponseEventAdapterImpl } from '../implementation/response_event_adapter';
-
-/**
- * Interface for a server-sent event.
- */
-interface ServerSentEvent {
-  event: string;
-  data: string;
-  json(): any;
+export enum ConnectionState {
+  DISCONNECTED = 'disconnected',
+  CONNECTING = 'connecting',
+  CONNECTED = 'connected',
+  RECONNECTING = 'reconnecting',
+  ERROR = 'error'
 }
 
-/**
- * Options for the SentientAgentClient constructor.
- */
-interface SentientAgentClientOptions {
-  /**
-   * Session object to use for the client.
-   * If not provided, a new session will be created.
-   */
-  session?: {
-    processor_id: string;
-    activity_id: string;
-    request_id: string;
-    interactions: any[];
-  };
-  /**
-   * Default URL for the agent server.
-   */
-  defaultAgentUrl?: string;
+export interface SSEOptions {
+  enableAutoReconnect?: boolean;
+  maxReconnectAttempts?: number;
+  initialReconnectDelay?: number;
+  maxReconnectDelay?: number;
+  eventTypeFilter?: EventContentType[];
 }
 
-/**
- * Client for interacting with Sentient Agent Framework.
- */
-export class SentientAgentClient {
+export interface ConnectionInfo {
+  state: ConnectionState;
+  reconnectAttempts: number;
+  lastError?: Error;
+  connectedAt?: Date;
+}
+
+export class SentientAgentClient extends EventEmitter {
   private processor_id: string;
   private activity_id: string;
   private request_id: string;
   private interactions: any[];
   private defaultAgentUrl: string;
+  
+  // SSE-related properties
+  private eventSource?: EventSource;
+  private connectionState: ConnectionState;
+  private reconnectAttempts: number;
+  private reconnectTimer?: NodeJS.Timeout;
+  private sseOptions: SSEOptions;
 
-  /**
-   * Create a new SentientAgentClient.
-   * @param options Options for the client.
-   */
-  constructor(options?: SentientAgentClientOptions) {
-    if (options?.session) {
-      this.processor_id = options.session.processor_id;
-      this.activity_id = options.session.activity_id;
-      this.request_id = options.session.request_id;
-      this.interactions = options.session.interactions;
-    } else {
-      this.processor_id = "sentient-chat-client";
-      this.activity_id = ulid();
-      this.request_id = ulid();
-      this.interactions = [];
-    }
-    // Use provided default URL or a sensible default
-    this.defaultAgentUrl = options?.defaultAgentUrl || "http://localhost:8000/assist";
-  }
-
-  /**
-   * Process a server-sent event into a response event.
-   * @param event The server-sent event to process.
-   * @returns The processed response event.
-   */
-  async processEvent(event: ServerSentEvent): Promise<ResponseEvent> {
-    return ResponseEventAdapterImpl.validateJson(event.json());
-  }
-
-  /**
-   * Query an agent with a prompt.
-   * @param prompt The prompt to send to the agent.
-   * @param url The URL of the agent server.
-   * @returns An async iterator of response events.
-   */
-  async *queryAgent(
-    prompt: string,
-    url?: string // Make URL optional
-  ): AsyncGenerator<ResponseEvent> {
-    const targetUrl = url || this.defaultAgentUrl; // Use default if not provided
-    const query_id = ulid();
-    const body = JSON.stringify({
-      query: {
-        id: query_id,
-        prompt: prompt
-      },
-      session: {
-        processor_id: this.processor_id,
-        activity_id: this.activity_id,
-        request_id: this.request_id,
-        interactions: this.interactions
-      }
-    });
-
-    const headers = {
-      "Content-Type": "application/json"
+  constructor(defaultAgentUrl: string, sseOptions: SSEOptions = {}) {
+    super();
+    this.defaultAgentUrl = defaultAgentUrl;
+    this.processor_id = '';
+    this.activity_id = '';
+    this.request_id = '';
+    this.interactions = [];
+    
+    // Initialize SSE properties
+    this.connectionState = ConnectionState.DISCONNECTED;
+    this.reconnectAttempts = 0;
+    this.sseOptions = {
+      enableAutoReconnect: true,
+      maxReconnectAttempts: 10,
+      initialReconnectDelay: 1000,
+      maxReconnectDelay: 30000,
+      eventTypeFilter: undefined,
+      ...sseOptions
     };
+  }
 
-    // Create an EventSource for SSE
-    const response = await fetch(targetUrl, {
-      method: "POST",
-      headers,
-      body
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    if (!response.body) {
-      throw new Error("Response body is null");
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
+  async queryAgent(query: string, agentUrl: string): Promise<void> {
     try {
-      yield* this.parseSSEStream(reader, decoder);
-    } finally {
-      reader.releaseLock();
+      const response = await axios.post(agentUrl, { query });
+      this.processor_id = response.data.processor_id;
+      this.activity_id = response.data.activity_id;
+      this.request_id = response.data.request_id;
+      this.emit('querySuccess', response.data);
+    } catch (error) {
+      this.emit('queryError', error);
     }
   }
 
-  /**
-   * Parses the SSE stream from the response body.
-   * @param reader The ReadableStreamDefaultReader for the response body.
-   * @param decoder The TextDecoder instance.
-   * @returns An async generator yielding ResponseEvent objects.
-   */
-  private async *parseSSEStream(
-    reader: ReadableStreamDefaultReader<Uint8Array>,
-    decoder: TextDecoder
-  ): AsyncGenerator<ResponseEvent> {
-    let buffer = "";
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        // Process any remaining data in the buffer after the stream ends
-        if (buffer.trim()) {
-           const sseEvent = this.parseSSEMessage(buffer);
-           if (sseEvent) {
-             yield await this.processEvent(sseEvent);
-           }
+  async processEvents(agentUrl: string): Promise<void> {
+    try {
+      const response = await axios.get(`${agentUrl}/events`, {
+        params: {
+          processor_id: this.processor_id,
+          activity_id: this.activity_id,
+          request_id: this.request_id
         }
-        break;
-      }
+      });
+      this.interactions = response.data.interactions;
+      this.emit('eventsReceived', response.data);
+    } catch (error) {
+      this.emit('eventsError', error);
+    }
+  }
 
-      buffer += decoder.decode(value, { stream: true });
+  public getProcessorId(): string {
+    return this.processor_id;
+  }
 
-      // Process complete SSE messages
-      const messages = buffer.split("\n\n");
-      buffer = messages.pop() || ""; // Keep the last incomplete message
+  public getActivityId(): string {
+    return this.activity_id;
+  }
 
-      for (const message of messages) {
-         const sseEvent = this.parseSSEMessage(message);
-         if (sseEvent) {
-           yield await this.processEvent(sseEvent);
-         }
-      }
+  public getRequestId(): string {
+    return this.request_id;
+  }
+
+  // SSE Connection Management Methods
+  
+  /**
+   * Connect to the agent's SSE stream for real-time events
+   */
+  async connectSSE(agentUrl?: string): Promise<void> {
+    if (this.connectionState === ConnectionState.CONNECTED || this.connectionState === ConnectionState.CONNECTING) {
+      return;
+    }
+
+    const url = agentUrl || this.defaultAgentUrl;
+    const sseUrl = this.buildSSEUrl(url);
+    
+    this.setConnectionState(ConnectionState.CONNECTING);
+    
+    try {
+      this.eventSource = new EventSource(sseUrl);
+      this.setupSSEEventHandlers();
+    } catch (error) {
+      this.handleSSEError(error as Error);
     }
   }
 
   /**
-   * Parses a single SSE message string into a ServerSentEvent object.
-   * @param message The raw SSE message string.
-   * @returns A ServerSentEvent object or null if parsing fails.
+   * Disconnect from SSE stream
    */
-  private parseSSEMessage(message: string): ServerSentEvent | null {
-    if (!message.trim()) return null;
-
-    const lines = message.split("\n");
-    let eventType = "";
-    let data = "";
-
-    for (const line of lines) {
-        if (line.startsWith("event:")) {
-            eventType = line.slice(6).trim();
-        } else if (line.startsWith("data:")) {
-            // Accumulate data lines if they exist
-            data += (data ? "\n" : "") + line.slice(5).trim();
-        }
-        // Ignore other lines like id:, retry:, comments (:)
+  disconnectSSE(): void {
+    this.clearReconnectTimer();
+    
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = undefined;
     }
-
-    if (eventType && data) {
-      try {
-        // Attempt to parse immediately to catch errors early
-        const jsonData = JSON.parse(data);
-        return {
-          event: eventType,
-          data,
-          json: () => jsonData // Return pre-parsed JSON
-        };
-      } catch (e) {
-         console.error("Failed to parse SSE data as JSON:", data, e);
-         return null; // Or handle error appropriately
-      }
-    }
-    return null;
+    
+    this.setConnectionState(ConnectionState.DISCONNECTED);
+    this.reconnectAttempts = 0;
   }
 
   /**
-   * Get the current session object.
-   * @returns The current session object.
+   * Get current connection information
    */
-  getSession() {
+  getConnectionInfo(): ConnectionInfo {
     return {
-      processor_id: this.processor_id,
-      activity_id: this.activity_id,
-      request_id: this.request_id,
-      interactions: this.interactions
+      state: this.connectionState,
+      reconnectAttempts: this.reconnectAttempts,
+      lastError: undefined,
+      connectedAt: this.connectionState === ConnectionState.CONNECTED ? new Date() : undefined
     };
+  }
+
+  /**
+   * Subscribe to specific event types (for filtering)
+   */
+  subscribeToEvents(eventTypes: EventContentType[]): void {
+    this.sseOptions.eventTypeFilter = eventTypes;
+  }
+
+  /**
+   * Unsubscribe from event filtering (receive all events)
+   */
+  unsubscribeFromFiltering(): void {
+    this.sseOptions.eventTypeFilter = undefined;
+  }
+
+  // Private SSE Helper Methods
+
+  private buildSSEUrl(baseUrl: string): string {
+    const url = new URL(`${baseUrl}/events/stream`);
+    
+    if (this.processor_id) {
+      url.searchParams.set('processor_id', this.processor_id);
+    }
+    if (this.activity_id) {
+      url.searchParams.set('activity_id', this.activity_id);
+    }
+    if (this.request_id) {
+      url.searchParams.set('request_id', this.request_id);
+    }
+    
+    // Add event type filters if configured
+    if (this.sseOptions.eventTypeFilter && this.sseOptions.eventTypeFilter.length > 0) {
+      url.searchParams.set('event_types', this.sseOptions.eventTypeFilter.join(','));
+    }
+    
+    return url.toString();
+  }
+
+  private setupSSEEventHandlers(): void {
+    if (!this.eventSource) return;
+
+    this.eventSource.onopen = () => {
+      this.setConnectionState(ConnectionState.CONNECTED);
+      this.reconnectAttempts = 0;
+      this.emit('sseConnected');
+    };
+
+    this.eventSource.onmessage = (event: MessageEvent) => {
+      try {
+        const data = this.parseAndValidateEvent(event.data);
+        if (data) {
+          this.handleIncomingEvent(data);
+        }
+      } catch (error) {
+        this.emit('sseError', new Error(`Failed to parse event data: ${error}`));
+      }
+    };
+
+    this.eventSource.onerror = (error: Event) => {
+      this.handleSSEError(new Error('SSE connection error'));
+    };
+
+    // Setup custom event listeners for different event types
+    this.setupCustomEventListeners();
+  }
+
+  private setupCustomEventListeners(): void {
+    if (!this.eventSource) return;
+
+    // Listen for specific event types
+    Object.values(EventContentType).forEach(eventType => {
+      this.eventSource!.addEventListener(eventType, (event: MessageEvent) => {
+        try {
+          const data = this.parseAndValidateEvent(event.data);
+          if (data && this.shouldProcessEvent(data)) {
+            this.handleIncomingEvent(data);
+          }
+        } catch (error) {
+          this.emit('sseError', new Error(`Failed to process ${eventType} event: ${error}`));
+        }
+      });
+    });
+  }
+
+  private parseAndValidateEvent(eventData: string): ResponseEvent | null {
+    try {
+      const parsed = JSON.parse(eventData);
+      
+      // Basic validation of event structure
+      if (!this.isValidEvent(parsed)) {
+        throw new Error('Invalid event structure');
+      }
+      
+      return parsed as ResponseEvent;
+    } catch (error) {
+      throw new Error(`Event parsing failed: ${error}`);
+    }
+  }
+
+  private isValidEvent(event: any): boolean {
+    return (
+      event &&
+      typeof event === 'object' &&
+      typeof event.content_type === 'string' &&
+      typeof event.event_name === 'string' &&
+      typeof event.id === 'string' &&
+      typeof event.source === 'string'
+    );
+  }
+
+  private shouldProcessEvent(event: ResponseEvent): boolean {
+    // Apply event type filtering if configured
+    if (this.sseOptions.eventTypeFilter && this.sseOptions.eventTypeFilter.length > 0) {
+      return this.sseOptions.eventTypeFilter.includes(event.content_type);
+    }
+    
+    return true;
+  }
+
+  private handleIncomingEvent(event: ResponseEvent): void {
+    // Emit specific event types
+    this.emit('sseEvent', event);
+    this.emit(`sse:${event.content_type}`, event);
+    
+    // Handle special events
+    switch (event.content_type) {
+      case EventContentType.ERROR:
+        this.emit('sseEventError', event);
+        break;
+      case EventContentType.DONE:
+        this.emit('sseEventDone', event);
+        break;
+      case EventContentType.TEXT_STREAM:
+        this.emit('sseTextChunk', event);
+        break;
+      default:
+        // Generic event handling
+        break;
+    }
+  }
+
+  private handleSSEError(error: Error): void {
+    this.setConnectionState(ConnectionState.ERROR);
+    this.emit('sseError', error);
+    
+    if (this.sseOptions.enableAutoReconnect && this.shouldAttemptReconnect()) {
+      this.scheduleReconnect();
+    }
+  }
+
+  private shouldAttemptReconnect(): boolean {
+    return this.reconnectAttempts < (this.sseOptions.maxReconnectAttempts || 10);
+  }
+
+  private scheduleReconnect(): void {
+    this.clearReconnectTimer();
+    
+    const delay = this.calculateReconnectDelay();
+    this.setConnectionState(ConnectionState.RECONNECTING);
+    
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectAttempts++;
+      this.emit('sseReconnecting', { attempt: this.reconnectAttempts, delay });
+      this.connectSSE();
+    }, delay);
+  }
+
+  private calculateReconnectDelay(): number {
+    const baseDelay = this.sseOptions.initialReconnectDelay || 1000;
+    const maxDelay = this.sseOptions.maxReconnectDelay || 30000;
+    
+    // Exponential backoff with jitter
+    const exponentialDelay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempts), maxDelay);
+    const jitter = Math.random() * 0.3; // Add up to 30% jitter
+    
+    return Math.floor(exponentialDelay * (1 + jitter));
+  }
+
+  private setConnectionState(state: ConnectionState): void {
+    const previousState = this.connectionState;
+    this.connectionState = state;
+    
+    if (previousState !== state) {
+      this.emit('sseConnectionStateChange', { previous: previousState, current: state });
+    }
+  }
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
+  }
+
+  // Enhanced HTTP methods for backward compatibility with SSE integration
+
+  /**
+   * Enhanced query method that can optionally establish SSE connection
+   */
+  async queryAgentWithSSE(query: string, agentUrl: string, enableSSE = true): Promise<void> {
+    // First perform the standard HTTP query
+    await this.queryAgent(query, agentUrl);
+    
+    // Then establish SSE connection if requested
+    if (enableSSE && this.processor_id && this.activity_id && this.request_id) {
+      await this.connectSSE(agentUrl);
+    }
+  }
+
+  /**
+   * Process events with fallback to HTTP if SSE is not connected
+   */
+  async processEventsHybrid(agentUrl: string): Promise<void> {
+    if (this.connectionState === ConnectionState.CONNECTED) {
+      // SSE is connected, events will come through the stream
+      return;
+    } else {
+      // Fall back to HTTP polling
+      return this.processEvents(agentUrl);
+    }
+  }
+
+  /**
+   * Clean up resources and close connections
+   */
+  destroy(): void {
+    this.disconnectSSE();
+    this.removeAllListeners();
   }
 }
