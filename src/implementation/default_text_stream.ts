@@ -52,18 +52,21 @@ export class DefaultTextStream implements StreamEventEmitter<string> {
       );
     }
     
-    const event = createTextChunkEvent({
-      source: this._eventSource.id,
-      event_name: this._eventName,
-      stream_id: this._streamId,
-      is_complete: false,
-      content: chunk
-    });
-    
-    await this._hook.emit(event);
-    
-    // LOG: Emitted chunk
-    console.info('[DefaultTextStream][LOG] Emitted chunk:', chunk);
+    // Only emit chunk if it's truthy (not empty or null/undefined)
+    if (chunk) {
+      const event = createTextChunkEvent({
+        source: this._eventSource.id,
+        event_name: this._eventName,
+        stream_id: this._streamId,
+        is_complete: false,
+        content: chunk
+      });
+      
+      await this._hook.emit(event);
+      
+      // LOG: Emitted chunk
+      console.info('[DefaultTextStream][LOG] Emitted chunk:', chunk);
+    }
     
     return this;
   }

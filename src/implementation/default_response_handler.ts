@@ -93,13 +93,15 @@ export class DefaultResponseHandler implements ResponseHandler {
   }
 
   /**
-   * Emit a response and mark the response as complete.
+   * Emit a response and optionally mark the response as complete.
    * @param eventName The name of the event.
    * @param response The response content, either a string or a JSON object.
+   * @param complete Whether to mark the response as complete (default: true).
    */
   async respond(
     eventName: string, 
-    response: string | Record<string, any>
+    response: string | Record<string, any>,
+    complete: boolean = true
   ): Promise<void> {
     this.verifyResponseStreamIsOpen();
     
@@ -128,7 +130,9 @@ export class DefaultResponseHandler implements ResponseHandler {
       await this.emitEvent(event);
     }
 
-    await this.complete();
+    if (complete) {
+      await this.complete();
+    }
   }
 
   /**

@@ -71,11 +71,12 @@ class DefaultResponseHandler {
         }
     }
     /**
-     * Emit a response and mark the response as complete.
+     * Emit a response and optionally mark the response as complete.
      * @param eventName The name of the event.
      * @param response The response content, either a string or a JSON object.
+     * @param complete Whether to mark the response as complete (default: true).
      */
-    async respond(eventName, response) {
+    async respond(eventName, response, complete = true) {
         this.verifyResponseStreamIsOpen();
         if (typeof response === 'string') {
             const event = (0, event_factories_1.createTextBlockEvent)({
@@ -100,7 +101,9 @@ class DefaultResponseHandler {
             });
             await this.emitEvent(event);
         }
-        await this.complete();
+        if (complete) {
+            await this.complete();
+        }
     }
     /**
      * Emit a JSON object as an event.

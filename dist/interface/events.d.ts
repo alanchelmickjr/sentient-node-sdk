@@ -25,7 +25,7 @@ export declare enum EventContentType {
     ERROR = "atomic.error",
     DONE = "atomic.done"
 }
-export type EventMetadata = Record<string, string | number | boolean | string[] | number[] | boolean[]>;
+export type EventMetadata = Record<string, any>;
 export interface Event {
     content_type: EventContentType;
     event_name: string;

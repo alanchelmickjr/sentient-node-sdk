@@ -39,16 +39,19 @@ class DefaultTextStream {
         if (this._isComplete) {
             throw new exceptions_1.TextStreamClosedError(`Cannot emit chunk to closed stream ${this._streamId}.`);
         }
-        const event = (0, event_factories_1.createTextChunkEvent)({
-            source: this._eventSource.id,
-            event_name: this._eventName,
-            stream_id: this._streamId,
-            is_complete: false,
-            content: chunk
-        });
-        await this._hook.emit(event);
-        // LOG: Emitted chunk
-        console.info('[DefaultTextStream][LOG] Emitted chunk:', chunk);
+        // Only emit chunk if it's truthy (not empty or null/undefined)
+        if (chunk) {
+            const event = (0, event_factories_1.createTextChunkEvent)({
+                source: this._eventSource.id,
+                event_name: this._eventName,
+                stream_id: this._streamId,
+                is_complete: false,
+                content: chunk
+            });
+            await this._hook.emit(event);
+            // LOG: Emitted chunk
+            console.info('[DefaultTextStream][LOG] Emitted chunk:', chunk);
+        }
         return this;
     }
     /**

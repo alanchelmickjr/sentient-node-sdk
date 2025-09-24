@@ -68,11 +68,12 @@ export interface StreamEventEmitter<T> {
  */
 export interface ResponseHandler {
   /**
-   * Emit a response and mark the response as complete.
+   * Emit a response and optionally mark the response as complete.
    * @param eventName The name of the event.
    * @param response The response content, either a string or a JSON object.
+   * @param complete Whether to mark the response as complete (default: true).
    */
-  respond(eventName: string, response: string | Record<string, any>): Promise<void>;
+  respond(eventName: string, response: string | Record<string, any>, complete?: boolean): Promise<void>;
 
   /**
    * Emit a JSON object as an event.
