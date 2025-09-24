@@ -74,9 +74,7 @@ export class DefaultTextStream implements StreamEventEmitter<string> {
    */
   async complete(): Promise<void> {
     if (this._isComplete) {
-      throw new TextStreamClosedError(
-        `Cannot complete already closed stream ${this._streamId}.`
-      );
+      return;
     }
     
     const event = createTextChunkEvent({
@@ -84,7 +82,7 @@ export class DefaultTextStream implements StreamEventEmitter<string> {
       event_name: this._eventName,
       stream_id: this._streamId,
       is_complete: true,
-      content: '' // Empty string as final content
+      content: ' ' // Use a space to indicate completion
     });
     
     await this._hook.emit(event);

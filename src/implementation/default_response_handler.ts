@@ -93,45 +93,6 @@ export class DefaultResponseHandler implements ResponseHandler {
   }
 
   /**
-   * Emit a response and mark the response as complete.
-   * @param eventName The name of the event.
-   * @param response The response content, either a string or a JSON object.
-   */
-  async respond(
-    eventName: string, 
-    response: string | Record<string, any>
-  ): Promise<void> {
-    this.verifyResponseStreamIsOpen();
-    
-    if (typeof response === 'string') {
-      const event = createTextBlockEvent({
-        source: this._source.id,
-        event_name: eventName,
-        content: response
-      });
-      await this.emitEvent(event);
-    } else {
-      try {
-        // Verify JSON serializable
-        JSON.stringify(response);
-      } catch (e) {
-        throw new AgentError(
-          "Response content must be JSON serializable"
-        );
-      }
-      
-      const event = createDocumentEvent({
-        source: this._source.id,
-        event_name: eventName,
-        content: response
-      });
-      await this.emitEvent(event);
-    }
-
-    await this.complete();
-  }
-
-  /**
    * Emit a JSON object as an event.
    * @param eventName The name of the event.
    * @param data The JSON data to emit.
@@ -274,5 +235,39 @@ export class DefaultResponseHandler implements ResponseHandler {
    */
   private async emitEvent(event: any): Promise<void> {
     await this._hook.emit(event);
+  }
+
+  async respond(
+    eventName: string, 
+    response: string | Record<string, any>
+  ): Promise<void> {
+    this.verifyResponseStreamIsOpen();
+    
+    if (typeof response === 'string') {
+      const event = createTextBlockEvent({
+        source: this._source.id,
+        event_name: eventName,
+        content: response
+      });
+      await this.emitEvent(event);
+    } else {
+      try {
+        // Verify JSON serializable
+        JSON.stringify(response);
+      } catch (e) {
+        throw new AgentError(
+          "Response content must be JSON serializable"
+        );
+      }
+      
+      const event = createDocumentEvent({
+        source: this._source.id,
+        event_name: eventName,
+        content: response
+      });
+      await this.emitEvent(event);
+    }
+
+    await this.complete();
   }
 }

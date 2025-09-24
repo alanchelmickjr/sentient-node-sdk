@@ -1,4 +1,4 @@
-import { Session, SessionObject, Interaction } from '../interface/session';
+import { Session, SessionObject, Interaction, RequestMessage } from '../interface/session';
 
 /**
  * Default implementation of the Session interface.
@@ -45,7 +45,7 @@ export class DefaultSession implements Session {
    * Get interactions as AsyncIterable
    * In a stateless environment, we convert the array to an AsyncIterable
    */
-  async *get_interactions(): AsyncIterable<Interaction> {
+  async *get_interactions(): AsyncIterable<Interaction<RequestMessage>> {
     // LOG: Access get_interactions
     console.info('[DefaultSession][LOG] Accessing get_interactions');
     

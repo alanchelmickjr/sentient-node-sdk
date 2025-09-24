@@ -31,6 +31,7 @@ import { AbstractAgent } from '../interface/agent';
 import { EventContentType } from '../interface/events';
 import { Identity } from '../interface/identity';
 import { Request as AgentRequest } from '../interface/request';
+import { AsyncQueue } from './default_hook';
 
 /**
  * Default server implementation for Sentient Agent Framework.
@@ -112,24 +113,14 @@ export class DefaultServer {
     // Create session, identity, queue, hook, response handler
     const session = new DefaultSession(agentReq.session || {});
     const identity = new Identity(session.processor_id, this._agent.name);
-    const responseQueue: Array<any> = []; // Replace with async queue if needed
+    const responseQueue = new AsyncQueue<any>();
     const hook = new DefaultHook({ queue: responseQueue });
     const responseHandler = new DefaultResponseHandler(identity, hook);
 
-    // Start assist task (assume Promise)
     // Start assist task and handle potential errors
     this._agent.assist(session, agentReq.query, responseHandler)
-      .then(() => {
-        console.info('[DefaultServer][LOG] Agent assist promise resolved.');
-        // Ensure completion is signaled if agent finishes without explicitly calling complete()
-        if (!responseHandler.isComplete) {
-          console.warn('[DefaultServer][WARN] Agent assist promise resolved but handler not complete. Forcing completion.');
-          return responseHandler.complete();
-        }
-      })
       .catch(async (err) => {
         console.error('[DefaultServer][ERROR] Agent assist error:', err);
-        // Ensure error is emitted back to client if stream is still open
         if (!responseHandler.isComplete) {
           try {
             await responseHandler.emitError(
@@ -137,29 +128,20 @@ export class DefaultServer {
               err.code || 500,
               { stack: err.stack }
             );
-            // Ensure stream is closed after error
             await responseHandler.complete();
           } catch (emitErr) {
             console.error('[DefaultServer][ERROR] Failed to emit error back to client:', emitErr);
           }
         }
-        // Mark as done to stop the streaming loop even on error
-        done = true;
       });
 
-    // Simulate event streaming from queue
-    let done = false;
-    while (!done) {
-      if (responseQueue.length > 0) {
-        const event = responseQueue.shift();
-        res.write(`event: ${event.event_name}\n`);
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
-        if (event.content_type === EventContentType.DONE) {
-          done = true;
-        }
-      } else {
-        // If queue is empty, wait briefly
-        await new Promise(resolve => setTimeout(resolve, 50));
+    // Stream events from the queue
+    while (true) {
+      const event = await responseQueue.get();
+      res.write(`event: ${event.event_name}\n`);
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+      if (event.content_type === EventContentType.DONE) {
+        break;
       }
     }
     res.end();
