@@ -108,7 +108,7 @@ describe('Terminal Utilities', () => {
   let terminal: TerminalUtils;
 
   beforeEach(() => {
-    terminal = new TerminalUtils(true); // Enable colors for testing
+    terminal = new TerminalUtils(true, undefined, true); // Enable colors for testing with force flag
   });
 
   test('should detect terminal capabilities', () => {

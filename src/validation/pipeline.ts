@@ -66,39 +66,39 @@ function processValidationError(error: z.ZodError): Record<string, string[]> {
       fieldErrors[fieldKey] = [];
     }
     
+    // Always preserve the original message first, only enhance if no custom message
     let message = err.message;
     
-    // Enhanced error messages based on error type
-    switch (err.code) {
-      case 'invalid_type':
-        message = `Expected ${err.expected}, received ${err.received}`;
-        break;
-      case 'too_small':
-        if (err.type === 'string') {
-          message = `String must be at least ${err.minimum} characters long`;
-        } else if (err.type === 'array') {
-          message = `Array must contain at least ${err.minimum} item(s)`;
-        } else {
-          message = `Value must be at least ${err.minimum}`;
-        }
-        break;
-      case 'too_big':
-        if (err.type === 'string') {
-          message = `String must be at most ${err.maximum} characters long`;
-        } else if (err.type === 'array') {
-          message = `Array must contain at most ${err.maximum} item(s)`;
-        } else {
-          message = `Value must be at most ${err.maximum}`;
-        }
-        break;
-      case 'invalid_string':
-        if (err.validation === 'regex') {
-          message = `Invalid format for field ${fieldKey}`;
-        }
-        break;
-      case 'custom':
-        // Keep custom validation messages as-is
-        break;
+    // Only enhance generic messages, preserve custom ones
+    if (message === 'Required' || message === 'Invalid input' || message === 'Invalid') {
+      switch (err.code) {
+        case 'invalid_type':
+          message = `Expected ${err.expected}, received ${err.received}`;
+          break;
+        case 'too_small':
+          if (err.type === 'string') {
+            message = `String must be at least ${err.minimum} characters long`;
+          } else if (err.type === 'array') {
+            message = `Array must contain at least ${err.minimum} item(s)`;
+          } else {
+            message = `Value must be at least ${err.minimum}`;
+          }
+          break;
+        case 'too_big':
+          if (err.type === 'string') {
+            message = `String must be at most ${err.maximum} characters long`;
+          } else if (err.type === 'array') {
+            message = `Array must contain at most ${err.maximum} item(s)`;
+          } else {
+            message = `Value must be at most ${err.maximum}`;
+          }
+          break;
+        case 'invalid_string':
+          if (err.validation === 'regex') {
+            message = `Invalid format for field ${fieldKey}`;
+          }
+          break;
+      }
     }
     
     fieldErrors[fieldKey].push(message);

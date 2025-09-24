@@ -29,7 +29,8 @@ export { EventContentType, DEFAULT_ERROR_CODE, ERROR, DEFAULT_CAPABILITY, ASSIST
  * ULID validation schema with comprehensive checks
  */
 export const ULIDSchema = z.string()
-  .length(26, 'ULID must be exactly 26 characters')
+  .min(26, 'ULID must be exactly 26 characters')
+  .max(26, 'ULID must be exactly 26 characters')
   .regex(/^[0-9A-HJKMNP-TV-Z]{26}$/, 'ULID contains invalid characters')
   .refine((value) => {
     try {

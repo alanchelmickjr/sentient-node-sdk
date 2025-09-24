@@ -92,10 +92,11 @@ export class TerminalUtils {
   private theme: ColorTheme;
   private colorEnabled: boolean;
 
-  constructor(colorEnabled = true, theme: ColorTheme = DEFAULT_THEME) {
+  constructor(colorEnabled = true, theme: ColorTheme = DEFAULT_THEME, forceColors = false) {
     this.capabilities = this.detectCapabilities();
     this.theme = theme;
-    this.colorEnabled = colorEnabled && this.capabilities.supportsColor;
+    // Allow forcing colors for testing even when terminal doesn't support them
+    this.colorEnabled = forceColors ? colorEnabled : (colorEnabled && this.capabilities.supportsColor);
   }
 
   /**

@@ -92,7 +92,17 @@ function cleanupTestLogDir(): void {
   if (fs.existsSync(TEST_LOG_DIR)) {
     const files = fs.readdirSync(TEST_LOG_DIR);
     for (const file of files) {
-      fs.unlinkSync(path.join(TEST_LOG_DIR, file));
+      const filePath = path.join(TEST_LOG_DIR, file);
+      try {
+        const stats = fs.statSync(filePath);
+        if (stats.isDirectory()) {
+          fs.rmSync(filePath, { recursive: true, force: true });
+        } else {
+          fs.unlinkSync(filePath);
+        }
+      } catch (error) {
+        // Ignore errors during cleanup
+      }
     }
   }
 }
@@ -231,15 +241,20 @@ describe('Core Logger', () => {
 
 describe('Console Transport', () => {
   let transport: ConsoleTransport;
-  let consoleSpy: jest.SpyInstance;
+  let consoleSpies: { [key: string]: jest.SpyInstance };
 
   beforeEach(() => {
     transport = createDevConsoleTransport();
-    consoleSpy = jest.spyOn(console, 'info').mockImplementation();
+    consoleSpies = {
+      info: jest.spyOn(console, 'info').mockImplementation(),
+      warn: jest.spyOn(console, 'warn').mockImplementation(),
+      error: jest.spyOn(console, 'error').mockImplementation(),
+      log: jest.spyOn(console, 'log').mockImplementation()
+    };
   });
 
   afterEach(() => {
-    consoleSpy.mockRestore();
+    Object.values(consoleSpies).forEach(spy => spy.mockRestore());
   });
 
   test('should log to console', () => {
@@ -253,7 +268,7 @@ describe('Console Transport', () => {
 
     transport.log(entry);
 
-    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    expect(consoleSpies.info).toHaveBeenCalledTimes(1);
   });
 
   test('should respect log level', () => {
@@ -278,7 +293,7 @@ describe('Console Transport', () => {
     transport.log(infoEntry);
     transport.log(warnEntry);
 
-    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    expect(consoleSpies.warn).toHaveBeenCalledTimes(1);
   });
 
   test('should handle disabled transport', () => {
@@ -294,7 +309,9 @@ describe('Console Transport', () => {
 
     transport.log(entry);
 
-    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(consoleSpies.info).not.toHaveBeenCalled();
+    expect(consoleSpies.warn).not.toHaveBeenCalled();
+    expect(consoleSpies.error).not.toHaveBeenCalled();
   });
 });
 

@@ -202,8 +202,12 @@ export class SessionPersistenceManager {
     // Create persisted session
     const persistedSession = await this._store.createSession(completeSessionObject, options);
     
-    // Create DefaultSession instance
-    const defaultSession = new DefaultSession(completeSessionObject);
+    // Create DefaultSession instance with persistence configuration
+    const defaultSession = new DefaultSession(completeSessionObject, undefined, {
+      persistenceManager: this,
+      enableAutoPersistence: options.enable_auto_persist !== false && this._config.auto_persist_enabled,
+      persistenceSessionId: persistedSession.session_id
+    });
     
     // Track session for auto-persistence
     if (options.enable_auto_persist !== false && this._config.auto_persist_enabled) {
@@ -230,7 +234,11 @@ export class SessionPersistenceManager {
       interactions: persistedSession.interactions
     };
 
-    const defaultSession = new DefaultSession(sessionObject);
+    const defaultSession = new DefaultSession(sessionObject, undefined, {
+      persistenceManager: this,
+      enableAutoPersistence: this._config.auto_persist_enabled,
+      persistenceSessionId: sessionId
+    });
     
     // Track session for auto-persistence
     if (this._config.auto_persist_enabled) {
@@ -246,7 +254,12 @@ export class SessionPersistenceManager {
    */
   async persistSession(session: DefaultSession, sessionId?: string): Promise<string> {
     if (!sessionId) {
-      // Extract session ID from activity_id (our session identifier)
+      // Use the persistence session ID from the session
+      sessionId = session.getPersistenceSessionId();
+    }
+    
+    if (!sessionId) {
+      // Fallback to activity_id if no persistence session ID is set
       sessionId = session.activity_id;
     }
 
@@ -273,7 +286,9 @@ export class SessionPersistenceManager {
         });
       } else {
         // Create new session
-        await this._store.createSession(sessionObject);
+        const created = await this._store.createSession(sessionObject);
+        // Return the actual session ID created by the store
+        sessionId = created.session_id;
       }
 
       this._persistCount++;

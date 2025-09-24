@@ -244,7 +244,7 @@ export class DefaultLogger implements Logger {
       const duration = now - startTime;
       this._timers.delete(id);
       
-      this.info(`Profile '${id}' completed`, { 
+      this.info(`Profile '${id}' completed`, {
         profileId: id,
         duration,
         operation: 'profile'
@@ -252,7 +252,7 @@ export class DefaultLogger implements Logger {
     } else {
       // Start profiling
       this._timers.set(id, now);
-      this.debug(`Profile '${id}' started`, { 
+      this.info(`Profile '${id}' started`, {
         profileId: id,
         operation: 'profile_start'
       });
@@ -283,9 +283,7 @@ export class DefaultLogger implements Logger {
   // Private Methods
   // ============================================================================
 
-  private async _processLogEntry(entry: LogEntry): Promise<void> {
-    const promises: Promise<void>[] = [];
-
+  private _processLogEntry(entry: LogEntry): void {
     for (const transport of this._transports.values()) {
       if (!transport.enabled || entry.level < transport.level) {
         continue;
@@ -293,21 +291,15 @@ export class DefaultLogger implements Logger {
 
       try {
         const result = transport.log(entry);
+        // Handle async transports without blocking
         if (result instanceof Promise) {
-          promises.push(result);
+          result.catch(error => {
+            console.error(`Transport ${transport.name} error:`, error);
+          });
         }
       } catch (error) {
         // Log transport errors to console as fallback
         console.error(`Transport ${transport.name} error:`, error);
-      }
-    }
-
-    // Wait for async transports
-    if (promises.length > 0) {
-      try {
-        await Promise.all(promises);
-      } catch (error) {
-        console.error('One or more transports failed:', error);
       }
     }
   }

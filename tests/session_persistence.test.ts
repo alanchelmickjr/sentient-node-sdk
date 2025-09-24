@@ -482,7 +482,7 @@ describe('Session Persistence System', () => {
       expect(session.processor_id).toBe(sessionObject.processor_id);
 
       // Verify session is persisted
-      const persisted = await manager.getSession(session.activity_id);
+      const persisted = await manager.getSession(session.getPersistenceSessionId()!);
       expect(persisted).toBeDefined();
     });
 
@@ -490,20 +490,20 @@ describe('Session Persistence System', () => {
       const session = await manager.createManagedSession();
       
       // Mark for persistence
-      manager.markSessionForPersistence(session.activity_id);
+      manager.markSessionForPersistence(session.getPersistenceSessionId()!);
       
       // Wait for auto-persist interval
       await new Promise(resolve => setTimeout(resolve, 150));
       
       // Verify session was persisted
-      const persisted = await manager.getSession(session.activity_id);
+      const persisted = await manager.getSession(session.getPersistenceSessionId()!);
       expect(persisted).toBeDefined();
     });
 
     it('should switch store types', async () => {
       // Create session in memory store
       const session = await manager.createManagedSession();
-      const sessionId = session.activity_id;
+      const sessionId = session.getPersistenceSessionId()!;
 
       // Switch to filesystem store
       await manager.updateConfig({
@@ -664,7 +664,7 @@ describe('Session Persistence System', () => {
       // Create new session and load data
       const newSession = new DefaultSession();
       newSession.setPersistenceManager(manager);
-      newSession.setPersistenceSessionId(session.activity_id);
+      newSession.setPersistenceSessionId(session.getPersistenceSessionId()!);
 
       const loaded = await newSession.loadFromPersistence();
       expect(loaded).toBe(true);
@@ -681,7 +681,7 @@ describe('Session Persistence System', () => {
       const info = session.getEnhancedSessionInfoWithPersistence();
       
       expect(info.persistence.managerConfigured).toBe(true);
-      expect(info.persistence.autoPersistenceEnabled).toBe(false); // Default
+      expect(info.persistence.autoPersistenceEnabled).toBe(true); // Should be enabled
       expect(info.persistence.persistenceSessionId).toBeDefined();
     });
 
@@ -689,7 +689,7 @@ describe('Session Persistence System', () => {
       const metadata = session.getPersistenceMetadata();
       
       expect(metadata.session_type).toBe('DefaultSession');
-      expect(metadata.auto_persistence_enabled).toBe(false);
+      expect(metadata.auto_persistence_enabled).toBe(true);
       expect(metadata.interactions_count).toBe(0);
     });
   });
