@@ -632,7 +632,7 @@ describe('Session Persistence System', () => {
 
     it('should manually persist session', async () => {
       const persistedId = await session.persist();
-      expect(persistedId).toBe(session.activity_id);
+      expect(persistedId).toBe(session.getPersistenceSessionId());
     });
 
     it('should load from persistence', async () => {
