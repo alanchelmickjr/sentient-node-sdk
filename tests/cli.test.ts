@@ -11,9 +11,11 @@ import * as os from 'os';
 
 describe('CLI Configuration', () => {
   let configManager: CLIConfigManager;
-  const testConfigPath = path.join(os.tmpdir(), 'test-cli-config.json');
+  let testConfigPath: string;
 
   beforeEach(() => {
+    // Generate unique config path for each test
+    testConfigPath = path.join(os.tmpdir(), `test-cli-config-${Date.now()}-${Math.random()}.json`);
     configManager = new CLIConfigManager(testConfigPath);
   });
 
@@ -27,6 +29,7 @@ describe('CLI Configuration', () => {
   });
 
   test('should load default configuration', async () => {
+    // Load config from fresh path that doesn't exist yet
     const config = await configManager.load();
     
     expect(config.defaultAgentUrl).toBe(DEFAULT_CLI_CONFIG.defaultAgentUrl);
@@ -122,7 +125,7 @@ describe('Terminal Utilities', () => {
   });
 
   test('should colorize text', () => {
-    const colorized = terminal.colorize('red', 'test');
+    const colorized = terminal.colorize('error', 'test');
     
     expect(colorized).toContain('test');
     if (terminal.getCapabilities().supportsColor) {
@@ -225,11 +228,11 @@ describe('Terminal Utilities', () => {
 
   test('should enable/disable colors', () => {
     terminal.setColorEnabled(false);
-    const colorized = terminal.colorize('red', 'test');
+    const colorized = terminal.colorize('error', 'test');
     expect(colorized).toBe('test'); // No color codes
 
     terminal.setColorEnabled(true);
-    const colorizedAgain = terminal.colorize('red', 'test');
+    const colorizedAgain = terminal.colorize('error', 'test');
     
     if (terminal.getCapabilities().supportsColor) {
       expect(colorizedAgain).toContain(ANSI_COLORS.red);

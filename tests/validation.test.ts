@@ -321,12 +321,15 @@ describe('Sentient Agent Validation System', () => {
     test('validates capability request', () => {
       const capabilityData = {
         capability: 'test-capability',
-        request_payload: { test: 'data' }
+        request_payload: {
+          id: ulid(),
+          prompt: 'Test prompt for capability validation'
+        }
       };
       
       const result = validateCapabilityRequest(
         'test-capability',
-        QuerySchema, // Using existing schema for simplicity
+        QuerySchema, // Using QuerySchema with correct payload structure
         capabilityData
       );
       
