@@ -1,4 +1,4 @@
-.old
+..old
 /node_modules
 /.DS_Store
 /.env
@@ -6,3 +6,4 @@
 /.env.development.local
 .roo
 /.roo
+/sentient-agent-framework
