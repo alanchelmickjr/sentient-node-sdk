@@ -16,6 +16,7 @@ import {
   LoggerConfig,
   LoggingSystemConfig,
   LogLevel,
+  LogLevelName,
   LogContext,
   LogTransport,
   LoggingMetrics,
@@ -30,6 +31,20 @@ import { DefaultLogger } from './logger';
 import { ConsoleTransport, createDevConsoleTransport, createProdConsoleTransport } from './transports/console_transport';
 import { FileTransport, createRotatingFileTransport } from './transports/file_transport';
 import { HTTPTransport, createHTTPSTransport } from './transports/http_transport';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const LOG_LEVEL_NAMES: Record<LogLevel, LogLevelName> = {
+  [LogLevel.TRACE]: 'TRACE',
+  [LogLevel.DEBUG]: 'DEBUG',
+  [LogLevel.INFO]: 'INFO',
+  [LogLevel.WARN]: 'WARN',
+  [LogLevel.ERROR]: 'ERROR',
+  [LogLevel.FATAL]: 'FATAL',
+  [LogLevel.OFF]: 'OFF'
+};
 
 // ============================================================================
 // Default Configurations
@@ -142,6 +157,13 @@ export class DefaultLoggerManager implements LoggerManager {
         }
       }
     }
+
+    // Wrap the logger to track metrics
+    const originalLog = logger.log.bind(logger);
+    logger.log = (level: LogLevel, message: string, context?: LogContext) => {
+      originalLog(level, message, context);
+      this._trackLogEntry(level, name);
+    };
 
     this._loggers.set(name, logger);
     this._updateMetrics();
@@ -484,6 +506,31 @@ export class DefaultLoggerManager implements LoggerManager {
     }
 
     return true;
+  }
+
+  private _trackLogEntry(level: LogLevel, loggerName: string): void {
+    if (!this._config.performance?.enableMetrics) {
+      return;
+    }
+
+    this._metrics.totalLogs++;
+    
+    // Track by level
+    const levelName = LOG_LEVEL_NAMES[level] as keyof typeof this._metrics.logsByLevel;
+    if (this._metrics.logsByLevel[levelName] !== undefined) {
+      this._metrics.logsByLevel[levelName]++;
+    }
+    
+    // Track by logger
+    if (!this._metrics.logsByLogger[loggerName]) {
+      this._metrics.logsByLogger[loggerName] = 0;
+    }
+    this._metrics.logsByLogger[loggerName]++;
+    
+    // Track errors
+    if (level === LogLevel.ERROR || level === LogLevel.FATAL) {
+      this._metrics.errorCount++;
+    }
   }
 }
 

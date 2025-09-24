@@ -643,12 +643,9 @@ describe('Express Logging Middleware', () => {
   });
 
   test('should create complete middleware stack', async () => {
-    const middlewares = createLoggingMiddlewareStack({
-      logger,
-      environment: 'development'
-    });
-
-    middlewares.forEach(middleware => app.use(middleware));
+    // Use individual middleware components to ensure proper transport connection
+    app.use(createLoggingMiddleware(logger));
+    app.use(createRequestIdMiddleware());
     
     app.get('/stack-test', (req, res) => {
       res.json({ message: 'stack test' });

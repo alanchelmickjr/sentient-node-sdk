@@ -194,8 +194,9 @@ export class CapabilityManager extends EventEmitter {
       this.isInitialized = true;
       this.emit('manager:initialized');
     } catch (error) {
+      console.error('CapabilityManager initialization error:', error);
       throw new CapabilityRegistryError(
-        `Failed to initialize capability manager: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to initialize capability manager: ${error instanceof Error ? error.message : String(error)}`,
         'INITIALIZATION_ERROR'
       );
     }
@@ -546,6 +547,14 @@ export class CapabilityManager extends EventEmitter {
       const capabilityCount = this.registry.list().length;
       this.emit('persistence:loaded', filePath, capabilityCount);
     } catch (error) {
+      // Handle file not found gracefully - just start with empty state
+      if ((error as any)?.code === 'ENOENT') {
+        // File doesn't exist, which is fine for first run
+        this.emit('persistence:loaded', filePath, 0);
+        return;
+      }
+      
+      // Other errors are genuine failures
       this.emit('persistence:failed', error as Error);
       throw new CapabilityRegistryError(
         `Failed to load from file: ${error instanceof Error ? error.message : 'Unknown error'}`,

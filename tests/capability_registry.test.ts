@@ -413,7 +413,9 @@ describe('CapabilityManager', () => {
 
   describe('Initialization and Lifecycle', () => {
     test('should initialize successfully', async () => {
-      const newManager = new CapabilityManager();
+      const newManager = new CapabilityManager({
+        persistence: { enabled: false, autoSave: false, saveInterval: 30000 }
+      });
       let eventEmitted = false;
       
       newManager.on('manager:initialized', () => {
@@ -491,6 +493,11 @@ describe('CapabilityManager', () => {
           enableCapabilityValidation: true,
           strictSessionBinding: true,
           maxCapabilitiesPerSession: 1
+        },
+        persistence: {
+          enabled: false,
+          autoSave: false,
+          saveInterval: 30000
         }
       });
       await limitedManager.initialize();
@@ -502,7 +509,7 @@ describe('CapabilityManager', () => {
       await limitedManager.bindCapabilityToSession(sessionId, 'cap1');
       
       await expect(limitedManager.bindCapabilityToSession(sessionId, 'cap2'))
-        .rejects.toThrow('Session .* has reached maximum capability limit');
+        .rejects.toThrow(/Session .* has reached maximum capability limit/);
       
       await limitedManager.shutdown();
     });
