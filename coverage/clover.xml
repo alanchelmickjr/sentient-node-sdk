@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1758689729755" clover="3.2.0">
-  <project timestamp="1758689729755" name="All files">
-    <metrics statements="503" coveredstatements="95" conditionals="145" coveredconditionals="39" methods="95" coveredmethods="14" elements="743" coveredelements="148" complexity="0" loc="503" ncloc="503" packages="4" files="17" classes="17"/>
+<coverage generated="1758689904319" clover="3.2.0">
+  <project timestamp="1758689904319" name="All files">
+    <metrics statements="505" coveredstatements="95" conditionals="145" coveredconditionals="39" methods="95" coveredmethods="14" elements="745" coveredelements="148" complexity="0" loc="505" ncloc="505" packages="4" files="18" classes="18"/>
     <package name="src">
-      <metrics statements="168" coveredstatements="0" conditionals="29" coveredconditionals="0" methods="29" coveredmethods="0"/>
+      <metrics statements="169" coveredstatements="0" conditionals="29" coveredconditionals="0" methods="29" coveredmethods="0"/>
       <file name="agent.ts" path="/home/runner/work/sentient-node-sdk/sentient-node-sdk/src/agent.ts">
         <metrics statements="56" coveredstatements="0" conditionals="11" coveredconditionals="0" methods="10" coveredmethods="0"/>
         <line num="8" count="0" type="stmt"/>
@@ -164,7 +164,7 @@
         <line num="236" count="0" type="stmt"/>
       </file>
       <file name="index.ts" path="/home/runner/work/sentient-node-sdk/sentient-node-sdk/src/index.ts">
-        <metrics statements="18" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="0"/>
+        <metrics statements="19" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="0"/>
         <line num="18" count="0" type="stmt"/>
         <line num="19" count="0" type="stmt"/>
         <line num="20" count="0" type="stmt"/>
@@ -173,16 +173,17 @@
         <line num="23" count="0" type="stmt"/>
         <line num="24" count="0" type="stmt"/>
         <line num="25" count="0" type="stmt"/>
-        <line num="28" count="0" type="stmt"/>
-        <line num="31" count="0" type="stmt"/>
+        <line num="26" count="0" type="stmt"/>
+        <line num="29" count="0" type="stmt"/>
         <line num="32" count="0" type="stmt"/>
         <line num="33" count="0" type="stmt"/>
         <line num="34" count="0" type="stmt"/>
         <line num="35" count="0" type="stmt"/>
         <line num="36" count="0" type="stmt"/>
-        <line num="39" count="0" type="stmt"/>
+        <line num="37" count="0" type="stmt"/>
         <line num="40" count="0" type="stmt"/>
-        <line num="43" count="0" type="stmt"/>
+        <line num="41" count="0" type="stmt"/>
+        <line num="44" count="0" type="stmt"/>
       </file>
     </package>
     <package name="src.client">
@@ -501,7 +502,7 @@
       </file>
     </package>
     <package name="src.interface">
-      <metrics statements="50" coveredstatements="11" conditionals="8" coveredconditionals="4" methods="15" coveredmethods="2"/>
+      <metrics statements="51" coveredstatements="11" conditionals="8" coveredconditionals="4" methods="15" coveredmethods="2"/>
       <file name="agent.ts" path="/home/runner/work/sentient-node-sdk/sentient-node-sdk/src/interface/agent.ts">
         <metrics statements="2" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="0"/>
         <line num="33" count="0" type="stmt"/>
@@ -566,6 +567,10 @@
         <line num="10" count="0" type="stmt"/>
         <line num="11" count="0" type="stmt"/>
         <line num="15" count="0" type="stmt"/>
+      </file>
+      <file name="llm.ts" path="/home/runner/work/sentient-node-sdk/sentient-node-sdk/src/interface/llm.ts">
+        <metrics statements="1" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="17" count="0" type="stmt"/>
       </file>
     </package>
   </project>

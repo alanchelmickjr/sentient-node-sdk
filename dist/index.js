@@ -35,6 +35,7 @@ __exportStar(require("./interface/events"), exports);
 __exportStar(require("./interface/exceptions"), exports);
 __exportStar(require("./interface/hook"), exports);
 __exportStar(require("./interface/identity"), exports);
+__exportStar(require("./interface/llm"), exports);
 __exportStar(require("./interface/request"), exports);
 __exportStar(require("./interface/response_handler"), exports);
 __exportStar(require("./interface/session"), exports);

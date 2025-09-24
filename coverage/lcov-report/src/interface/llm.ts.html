@@ -3,15 +3,15 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/agent_config.ts</title>
+    <title>Code coverage report for src/interface/llm.ts</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="../prettify.css" />
-    <link rel="stylesheet" href="../base.css" />
-    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type='text/css'>
         .coverage-summary .sorter {
-            background-image: url(../sort-arrow-sprite.png);
+            background-image: url(../../sort-arrow-sprite.png);
         }
     </style>
 </head>
@@ -19,13 +19,13 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">src</a> agent_config.ts</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/interface</a> llm.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>0/0</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
@@ -110,7 +110,22 @@
 <a name='L45'></a><a href='#L45'>45</a>
 <a name='L46'></a><a href='#L46'>46</a>
 <a name='L47'></a><a href='#L47'>47</a>
-<a name='L48'></a><a href='#L48'>48</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -122,8 +137,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -154,56 +167,58 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// src/agent_config.ts (assuming this file path)
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * LLM Interface for Sentient Agent Framework
+ *
+ * This module defines the abstract interface for Language Learning Models (LLMs)
+ * used within the Sentient Agent Framework. It provides a standardized way to
+ * interact with different LLM providers and implementations.
+ *
+ * @module sentient-agent-framework/interface/llm
+ * @author Alan 56.7 &amp; Claude 3.7 the Magnificent via Roo on SPARC with Love for Sentient AI Berkeley Hackathon
+ * @version 0.1.0
+ */
 &nbsp;
 /**
- * Configuration class for the Agent.
- * Defines which tools are enabled and potentially other settings.
+ * Abstract base class for Language Learning Models.
+ * Implementations should extend this class to provide specific LLM functionality.
  */
-<span class="cstat-no" title="statement not covered" >export class A</span>gentConfig {
-    // Public properties representing configuration flags.
-    // Initialized with default values here.
-    // These could potentially be loaded from a config file or environment variables
-    // in the constructor or a separate initialization method.
+<span class="cstat-no" title="statement not covered" >export abstract class L</span>LM {
+  /**
+   * Generate text based on the given prompt.
+   * @param prompt The input prompt to generate text for
+   * @param maxTokens Maximum number of tokens to generate (optional)
+   * @param temperature Temperature for controlling randomness (optional)
+   * @param kwargs Additional parameters specific to the LLM implementation
+   * @returns Promise resolving to the generated text
+   */
+  abstract generate(
+    prompt: string,
+    maxTokens?: number,
+    temperature?: number,
+    ...kwargs: any[]
+  ): Promise&lt;string&gt;;
 &nbsp;
-    public TWITTER_ENABLED: boolean = <span class="cstat-no" title="statement not covered" >true;</span>
-    public DISCORD_ENABLED: boolean = <span class="cstat-no" title="statement not covered" >true;</span>
-    // Add other potential configuration flags here following the same pattern
-    // public SEARCH_ENABLED: boolean = false;
-    // public MEMORY_ENABLED: boolean = true;
+  /**
+   * Stream generate text based on the given prompt.
+   * @param prompt The input prompt to generate text for
+   * @param maxTokens Maximum number of tokens to generate (optional)
+   * @param temperature Temperature for controlling randomness (optional)
+   * @param kwargs Additional parameters specific to the LLM implementation
+   * @returns AsyncIterable of text chunks
+   */
+  abstract streamGenerate(
+    prompt: string,
+    maxTokens?: number,
+    temperature?: number,
+    ...kwargs: any[]
+  ): AsyncIterable&lt;string&gt;;
 &nbsp;
-<span class="fstat-no" title="function not covered" >    constructor() {</span>
-        // The constructor is where you might override the defaults based on
-        // external sources like environment variables or configuration files.
-&nbsp;
-        // Example: Overriding from environment variables
-        // (Using ?? to keep the default if the env var is not set)
-        // Note: process.env values are strings, so comparison with 'true' is needed.
-        // A more robust check might be needed depending on expected env var values.
-&nbsp;
-        /*
-        if (process.env.TWITTER_ENABLED !== undefined) {
-            this.TWITTER_ENABLED = process.env.TWITTER_ENABLED.toLowerCase() === 'true';
-        }
-        if (process.env.DISCORD_ENABLED !== undefined) {
-            this.DISCORD_ENABLED = process.env.DISCORD_ENABLED.toLowerCase() === 'true';
-        }
-        */
-&nbsp;
-        // You could also load from a JSON/YAML file here using fs.readFileSync etc.
-&nbsp;
-        // For this direct conversion, we'll stick to the defaults defined above.
-        // console.log("AgentConfig initialized with defaults (or overrides if implemented).");
-        // console.log(` - TWITTER_ENABLED: ${this.TWITTER_ENABLED}`);
-        // console.log(` - DISCORD_ENABLED: ${this.DISCORD_ENABLED}`);
-    }
-&nbsp;
-    // Optional: Add methods to load configuration dynamically if needed
-    // async loadFromEnv(): Promise&lt;void&gt; { ... }
-    // async loadFromFile(filePath: string): Promise&lt;void&gt; { ... }
+  /**
+   * Get information about the model.
+   * @returns Object containing model information
+   */
+  abstract getModelInfo(): Record&lt;string, any&gt;;
 }</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -213,14 +228,14 @@
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
                 at 2025-09-24T04:58:24.295Z
             </div>
-        <script src="../prettify.js"></script>
+        <script src="../../prettify.js"></script>
         <script>
             window.onload = function () {
                 prettyPrint();
             };
         </script>
-        <script src="../sorter.js"></script>
-        <script src="../block-navigation.js"></script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
     </body>
 </html>
     

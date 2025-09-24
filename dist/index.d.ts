@@ -17,6 +17,7 @@ export * from './interface/events';
 export * from './interface/exceptions';
 export * from './interface/hook';
 export * from './interface/identity';
+export * from './interface/llm';
 export * from './interface/request';
 export * from './interface/response_handler';
 export * from './interface/session';
